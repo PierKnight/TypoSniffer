@@ -1,0 +1,26 @@
+[project]
+name = "typosniffer"
+version = "0.1.0"
+description = "A tool to generate/find potential typosquatting attempts agains a domain"
+authors = [
+    {name = "PierKnight",email = "pier.altimari@libero.it"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dnstwist (>=20250130,<20250131)",
+    "requests (>=2.32.5,<3.0.0)",
+    "typeguard (>=4.4.4,<5.0.0)",
+    "rich-click (>=1.8.9,<2.0.0)"
+]
+
+[tool.poetry]
+packages = [{include = "typosniffer", from = "src"}]
+
+[project.scripts]
+typosniffer = "typosniffer.cli:cli"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
