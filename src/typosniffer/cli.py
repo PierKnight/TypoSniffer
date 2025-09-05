@@ -45,7 +45,7 @@ def cli(verbose):
     '-f', '--format',
     type=click.Choice(fuzzer.POSSIBLE_FORMATS, case_sensitive=False),
     default=fuzzer.POSSIBLE_FORMATS[0],
-    help='Output format: use typosniffer formats to print all possible formats'
+    help='format of output file'
 )
 @click.argument('filename')
 def fuzzing(filename: str, format: str):
