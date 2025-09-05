@@ -1,10 +1,9 @@
 from dnstwist import Fuzzer
 
 
-POSSIBLE_FORMATS = ['json', 'csv']
+POSSIBLE_FORMATS = ['json', 'xml']
 
-def fuzz():
-    domain = "internet-idee.net"
+def fuzz(domain: str):
     f = Fuzzer(domain)
     f.generate()
 
