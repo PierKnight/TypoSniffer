@@ -1,11 +1,14 @@
 
 
 import json
+import re
+import xml
 import click
 from rich_click import RichCommand, RichGroup
 from typosniffer.utils.console import console
 from typosniffer.config import config
 from typosniffer.fuzzing import fuzzer
+from typosniffer.utils.utility import validate_regex
 
 
 
@@ -47,14 +50,15 @@ def cli(verbose):
     default=fuzzer.POSSIBLE_FORMATS[0],
     help='format of output file'
 )
+@click.argument('domain', callback=validate_regex(r'^[\w+\.]+\w+', "not valid domain"))
 @click.argument('filename')
-def fuzzing(filename: str, format: str):
+def fuzzing(filename: str, format: str, domain: str):
     console.print("[bold green]Fuzzing Domain[/bold green]")
     
     with console.status("[bold green]Running Domain Fuzzing..[/bold green]"):
         with open(filename, "w", encoding="utf-8") as f:
             output = dict()
-            for domain in fuzzer.fuzz():
+            for domain in fuzzer.fuzz(domain):
                 if domain.fuzzer in output:
                     output[domain.fuzzer].append(domain.domain)
                 else:
@@ -62,7 +66,9 @@ def fuzzing(filename: str, format: str):
             
             if format.lower() == 'json':
                 json.dump(output, f, indent=4)
+
                                     
+
 
 
 if __name__ == "__main__":
