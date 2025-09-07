@@ -1,10 +1,11 @@
+from pathlib import Path
 from dnstwist import Fuzzer
 from typosniffer.config import config
-from typosniffer.cli import console
 from typeguard import typechecked
 import requests
-
+from typing import Optional
 from typosniffer.utils import utility
+from typosniffer.utils.console import console
 
 
 POSSIBLE_FORMATS = ['json', 'csv', 'plain']
@@ -19,10 +20,11 @@ TLD_DICTIONARY = ('com', 'net', 'org', 'info', 'cn', 'co', 'eu', 'de', 'uk', 'pw
 
 
 @typechecked
-def fuzz(domain: str, tld_dictionary: list[str]):
+def fuzz(domain: str, tld_dictionary: list[str], word_dictionary: list[str]):
 
+    tld_dict = tld_dictionary if tld_dictionary else read_tld_dictionary()
 
-    f = Fuzzer(domain, tld_dictionary=read_tld_dictionary())
+    f = Fuzzer(domain, tld_dictionary=tld_dict, dictionary=word_dictionary)
     f.generate()
 
     for variant in f.domains:
@@ -31,7 +33,7 @@ def fuzz(domain: str, tld_dictionary: list[str]):
 
 @typechecked
 def read_tld_dictionary() -> list[str]:
-    return utility.read_lines(TLD_FILE)
+    return utility.read_lines(utility.get_dictionary("tld.txt"))
 
 
 
