@@ -33,21 +33,28 @@ By Pierluigi Altimari
 """
     console.print(banner, style="bold green", highlight=False)
 
-@typechecked
 @click.group()
 @click.option("-v", "--verbose", is_flag=True)
+@typechecked
 def cli(verbose: bool):
     print_banner()
     config.load()
     
 
-@typechecked
 @cli.command()
 @click.option(
     '-tld', '--tld-dictionary',
     type=click.Path(exists=True),
     help='Top Level Domain list',
-    callback=utility.list_file_option
+    callback=utility.list_file_option,
+    default=utility.get_dictionary("tld.txt")
+)
+@click.option(
+    '-wd', '--word-dictionary',
+    type=click.Path(exists=True),
+    help='Word Dictionary to use',
+    callback=utility.list_file_option,
+    default=utility.get_dictionary("words.txt")
 )
 @click.option(
     '-f', '--format',
@@ -57,7 +64,8 @@ def cli(verbose: bool):
 )
 @click.argument('domain', callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
 @click.argument('filename', type=click.Path(dir_okay=True))
-def fuzzing(tld_dictionary: list[str], filename: str, format: str, domain: str):
+@typechecked
+def fuzzing(tld_dictionary: list[str], word_dictionary: list[str], filename: str, format: str, domain: str):
 
     format = format.lower()
 
@@ -68,22 +76,20 @@ def fuzzing(tld_dictionary: list[str], filename: str, format: str, domain: str):
 
             if format == 'json':
                 output = dict()
-                for permutation in fuzzer.fuzz(domain, tld_dictionary):
+                for permutation in fuzzer.fuzz(domain, tld_dictionary, word_dictionary):
                     if permutation.fuzzer in output:
                         output[permutation.fuzzer].append(permutation.domain)
                     else:
                         output[permutation.fuzzer] = [permutation.domain]
-                
-                    json.dump(output, f, indent=4)
+                json.dump(output, f, indent=4)
             elif format == "plain":
-                domains = [permutation.domain for permutation in fuzzer.fuzz(domain, tld_dictionary)]
+                domains = [permutation.domain for permutation in fuzzer.fuzz(domain, tld_dictionary, word_dictionary)]
                 f.write("\n".join(domains))
             elif format == "csv":
                 writer = csv.DictWriter(f, fieldnames=["fuzzer", "domain"])
-                for permutation in fuzzer.fuzz(domain, tld_dictionary):
+                for permutation in fuzzer.fuzz(domain, tld_dictionary, word_dictionary):
                     writer.writerow(permutation)
 
-@typechecked
 @cli.command(help = "Using a set of DNS servers and a target domain, return all potential fuzzed subdomains or domain variations that can be resolved.")
 @click.option(
     '-w', '--max_workers',
@@ -113,6 +119,7 @@ def fuzzing(tld_dictionary: list[str], filename: str, format: str, domain: str):
     default=utility.get_dictionary("words.txt")
 )
 @click.argument('domain', callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
+@typechecked
 def sniff(tld_dictionary: list[str], word_dictionary: list[str], nameservers: list[str], max_workers: int, domain: str):
     with console.status("[bold green]Sniffing potential similar domains[/bold green]"):
         sniffer.search_dns(domain, tld_dictionary=tld_dictionary, word_dictionary=word_dictionary, nameservers=nameservers, max_workers=max_workers)
