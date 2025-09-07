@@ -3,16 +3,13 @@
 import csv
 import json
 import click
+from typosniffer.sniffing import sniffer
 from typosniffer.utils.console import console
-from rich_click import RichCommand, RichGroup
 from typosniffer.config import config
 from typosniffer.fuzzing import fuzzer
-from typosniffer.sniffing import sniffer
-from typosniffer.utils.utility import validate_regex
+from typosniffer.utils import utility
 from typeguard import typechecked
 from dnstwist import VALID_FQDN_REGEX
-
-
 
 def print_banner():
     banner = \
@@ -47,14 +44,20 @@ def cli(verbose: bool):
 @typechecked
 @cli.command()
 @click.option(
+    '-tld', '--tld-dictionary',
+    type=click.Path(exists=True),
+    help='Top Level Domain list',
+    callback=utility.list_file_option
+)
+@click.option(
     '-f', '--format',
     type=click.Choice(fuzzer.POSSIBLE_FORMATS, case_sensitive=False),
     default=fuzzer.POSSIBLE_FORMATS[2],
     help='format of output file'
 )
-@click.argument('domain', callback=validate_regex(VALID_FQDN_REGEX, "not valid domain"))
+@click.argument('domain', callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
 @click.argument('filename', type=click.Path(dir_okay=True))
-def fuzzing(filename: str, format: str, domain: str):
+def fuzzing(tld_dictionary: list[str], filename: str, format: str, domain: str):
 
     format = format.lower()
 
@@ -65,7 +68,7 @@ def fuzzing(filename: str, format: str, domain: str):
 
             if format == 'json':
                 output = dict()
-                for permutation in fuzzer.fuzz(domain):
+                for permutation in fuzzer.fuzz(domain, tld_dictionary):
                     if permutation.fuzzer in output:
                         output[permutation.fuzzer].append(permutation.domain)
                     else:
@@ -73,11 +76,11 @@ def fuzzing(filename: str, format: str, domain: str):
                 
                     json.dump(output, f, indent=4)
             elif format == "plain":
-                domains = [permutation.domain for permutation in fuzzer.fuzz(domain)]
+                domains = [permutation.domain for permutation in fuzzer.fuzz(domain, tld_dictionary)]
                 f.write("\n".join(domains))
             elif format == "csv":
                 writer = csv.DictWriter(f, fieldnames=["fuzzer", "domain"])
-                for permutation in fuzzer.fuzz(domain):
+                for permutation in fuzzer.fuzz(domain, tld_dictionary):
                     writer.writerow(permutation)
 
 @typechecked
@@ -89,22 +92,37 @@ def fuzzing(filename: str, format: str, domain: str):
     help="Max numbers of threads used in paralled for dns queries"
 )
 @click.option(
-    '-ns', '--nameserver',
+    '-ns', '--nameservers',
     type=click.Path(exists=True),
-    help='File containing a list of dns servers used for lookup in cycle'
+    help='File containing a list of dns servers used for lookup in cycle',
+    callback=utility.list_file_option,
+    default=utility.get_dictionary("nameservers.txt")
 )
-@click.argument('domain', callback=validate_regex(VALID_FQDN_REGEX, "not valid domain"))
-def sniff(max_workers: int, nameserver: list[str], domain: str):
+@click.option(
+    '-tld', '--tld-dictionary',
+    type=click.Path(exists=True),
+    help='Top Level Domain list',
+    callback=utility.list_file_option,
+    default=utility.get_dictionary("tld.txt")
+)
+@click.option(
+    '-wd', '--word-dictionary',
+    type=click.Path(exists=True),
+    help='Word Dictionary to use',
+    callback=utility.list_file_option,
+    default=utility.get_dictionary("words.txt")
+)
+@click.argument('domain', callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
+def sniff(tld_dictionary: list[str], word_dictionary: list[str], nameservers: list[str], max_workers: int, domain: str):
     with console.status("[bold green]Sniffing potential similar domains[/bold green]"):
-        sniffer.search_dns(domain, [], max_workers)
+        sniffer.search_dns(domain, tld_dictionary=tld_dictionary, word_dictionary=word_dictionary, nameservers=nameservers, max_workers=max_workers)
 
 
 @cli.command(help = "Updates the tld dictionary from iana.org to generate all possible permutation using the fuzzer")
 def tld():
     with console.status("[bold green]Updating tdl File[/bold green]"):
         fuzzer.update_tld_dictionary()
-
-            
+    
 
                                     
 if __name__ == "__main__":
