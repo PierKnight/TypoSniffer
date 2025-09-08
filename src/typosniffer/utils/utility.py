@@ -1,10 +1,13 @@
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from importlib import resources
 from pathlib import Path
 import re
 from typing import List, Optional
-
 import click
 from typeguard import typechecked
+
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
+from typosniffer.utils.console import console
 
 @typechecked
 def validate_regex(pattern: re.Pattern, message: str = None):
@@ -44,3 +47,25 @@ def comma_separated_option(ctx, param, value: str) -> List[str]:
     if value is None:
         return None
     return value.split(",")
+
+"""
+def launch_thread_task(datas: list[any], task, parameters, max_workers: int, on_result):
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TextColumn("[green]{task.completed}/{task.total} domain file scanned"),
+            console=console
+        ) as progress:
+            
+            future_to_task = {executor.submit(task, parameters(data)) for data in datas}
+            
+            for future in as_completed(future_to_task):
+                try:
+                    
+                except Exception as e
+"""
