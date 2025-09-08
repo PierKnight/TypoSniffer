@@ -1,5 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
 from itertools import cycle
+from pathlib import Path
 import dns
 from dns import exception
 from typeguard import typechecked
@@ -7,6 +9,25 @@ from typosniffer.fuzzing import fuzzer
 from typosniffer.utils.console import console
 from dns import resolver
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
+
+import textdistance
+
+@dataclass(frozen=True)
+class SniffResult:
+    domain: str = field(compare=True)
+    dameraulevenshtein: int = field(compare=False)
+    hamming: int = field(compare=False)
+    jaro: float = field(compare=False)
+    levenshtein: int = field(compare=False)
+
+@dataclass(frozen=True)
+class SniffCriteria:
+    dameraulevenshtein: int
+    hamming: int
+    jaro: float
+    levenshtein: int
+
+DEFAULT_CRITERIA = SniffCriteria(1, 1, 0.9, 1)
 
 
 
@@ -72,3 +93,48 @@ def search_dns(domain: str, tld_dictionary: list[str], word_dictionary: list[str
     console.print(results)
                 
     return results
+
+def strip_tld(domain: str) -> str:
+    parts = domain.split(".")
+    return ".".join(parts[:-1]) if len(parts) > 1 else domain
+
+def sniff_file(file: Path, domain: str, criteria: SniffCriteria = DEFAULT_CRITERIA) -> set[SniffResult]:
+    """
+    Given a file, it will read every domain in them and perform checks for similarities with a domain/domains
+    """
+    results = set()
+    with open(file, "r", encoding="utf-8") as f:
+        for line in f:
+                
+                line = line.strip()
+            
+                dom = strip_tld(domain)
+                d = strip_tld(line)
+
+                hamming = textdistance.hamming(dom, d) if len(dom) == len(d) else -1
+
+                sniff_result = SniffResult(
+                    domain=line,
+                    dameraulevenshtein=textdistance.damerau_levenshtein(dom, d),
+                    hamming=hamming,
+                    jaro=textdistance.jaro_winkler(dom, d),
+                    levenshtein=textdistance.levenshtein(dom, d)
+                )
+            
+                is_sus = sniff_result.hamming <= criteria.hamming and sniff_result.hamming >= 0 or \
+                        sniff_result.dameraulevenshtein <= criteria.dameraulevenshtein or \
+                        sniff_result.jaro >= criteria.jaro or \
+                        sniff_result.levenshtein <= criteria.levenshtein
+
+                if is_sus:
+                    results.add(sniff_result)
+    return results
+
+    
+    
+
+
+
+
+
+
