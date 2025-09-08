@@ -43,7 +43,7 @@ def cli(verbose: bool):
     config.load()
     
 
-@cli.command()
+@cli.command(help="Generate possible permutations of a given domain used in typosquatting")
 @click.option(
     '-tld', '--tld-dictionary',
     type=click.Path(exists=True),
