@@ -8,6 +8,7 @@ from typosniffer.utils.console import console
 from typosniffer.config import config
 from typosniffer.fuzzing import fuzzer
 from typosniffer.utils import utility
+from typosniffer.whoisds import whoisds
 from typeguard import typechecked
 from dnstwist import VALID_FQDN_REGEX
 
@@ -131,6 +132,11 @@ def sniff(tld_dictionary: list[str], word_dictionary: list[str], nameservers: li
         if output:
             with open(output, "w") as f:
                 json.dump(results, f, indent=4)
+
+@cli.command(help = "Update And Scan Domains collected from whoisds.com")
+def scan():
+    whoisds.whoisds_cli()
+
 
 @cli.command(help = "Updates the tld dictionary from iana.org to generate all possible permutation using the fuzzer")
 def tld():
