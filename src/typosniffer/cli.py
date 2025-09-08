@@ -63,7 +63,7 @@ def cli(verbose: bool):
     help='format of output file'
 )
 @click.argument('domain', callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
-@click.argument('filename', type=click.Path(dir_okay=True))
+@click.argument('filename', type=click.Path(dir_okay=True, writable=True))
 @typechecked
 def fuzzing(tld_dictionary: list[str], word_dictionary: list[str], filename: str, format: str, domain: str):
 
@@ -94,7 +94,7 @@ def fuzzing(tld_dictionary: list[str], word_dictionary: list[str], filename: str
 @click.option(
     '-w', '--max_workers',
     type=int, 
-    default= 10,
+    default= 40,
     help="Max numbers of threads used in paralled for dns queries"
 )
 @click.option(
@@ -118,12 +118,19 @@ def fuzzing(tld_dictionary: list[str], word_dictionary: list[str], filename: str
     callback=utility.list_file_option,
     default=utility.get_dictionary("words.txt")
 )
+@click.option(
+    '-o', '--output',
+    type=click.Path(dir_okay=True, writable=True),
+    help='File to write results'
+)
 @click.argument('domain', callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
 @typechecked
-def sniff(tld_dictionary: list[str], word_dictionary: list[str], nameservers: list[str], max_workers: int, domain: str):
+def sniff(tld_dictionary: list[str], word_dictionary: list[str], nameservers: list[str], max_workers: int, output: str, domain: str):
     with console.status("[bold green]Sniffing potential similar domains[/bold green]"):
-        sniffer.search_dns(domain, tld_dictionary=tld_dictionary, word_dictionary=word_dictionary, nameservers=nameservers, max_workers=max_workers)
-
+        results = sniffer.search_dns(domain, tld_dictionary=tld_dictionary, word_dictionary=word_dictionary, nameservers=nameservers, max_workers=max_workers)
+        if output:
+            with open(output, "w") as f:
+                json.dump(results, f, indent=4)
 
 @cli.command(help = "Updates the tld dictionary from iana.org to generate all possible permutation using the fuzzer")
 def tld():
