@@ -9,8 +9,8 @@ from typosniffer.fuzzing import fuzzer
 from typosniffer.utils.console import console
 from dns import resolver
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
-
 import textdistance
+from typosniffer.utils.utility import strip_tld
 
 @dataclass(frozen=True)
 class SniffResult:
@@ -94,10 +94,6 @@ def search_dns(domain: str, tld_dictionary: list[str], word_dictionary: list[str
                 
     return results
 
-def strip_tld(domain: str) -> str:
-    parts = domain.split(".")
-    return ".".join(parts[:-1]) if len(parts) > 1 else domain
-
 def sniff_file(file: Path, domain: str, criteria: SniffCriteria = DEFAULT_CRITERIA) -> set[SniffResult]:
     """
     Given a file, it will read every domain in them and perform checks for similarities with a domain/domains
@@ -108,17 +104,17 @@ def sniff_file(file: Path, domain: str, criteria: SniffCriteria = DEFAULT_CRITER
                 
                 line = line.strip()
             
-                dom = strip_tld(domain)
-                d = strip_tld(line)
+                _, original_domain = strip_tld(domain)
+                _, sniff_domain = strip_tld(line)
 
-                hamming = textdistance.hamming(dom, d) if len(dom) == len(d) else -1
+                hamming = textdistance.hamming(original_domain, sniff_domain) if len(original_domain) == len(sniff_domain) else -1
 
                 sniff_result = SniffResult(
                     domain=line,
-                    dameraulevenshtein=textdistance.damerau_levenshtein(dom, d),
+                    dameraulevenshtein=textdistance.damerau_levenshtein(original_domain, sniff_domain),
                     hamming=hamming,
-                    jaro=textdistance.jaro_winkler(dom, d),
-                    levenshtein=textdistance.levenshtein(dom, d)
+                    jaro=textdistance.jaro_winkler(original_domain, sniff_domain),
+                    levenshtein=textdistance.levenshtein(original_domain, sniff_domain)
                 )
             
                 is_sus = sniff_result.hamming <= criteria.hamming and sniff_result.hamming >= 0 or \

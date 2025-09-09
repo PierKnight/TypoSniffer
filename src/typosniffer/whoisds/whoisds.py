@@ -16,15 +16,15 @@ from rich.table import Table
 WHOISDS_FOLDER = config.FOLDER / "whoisds"
 
 
-def __format_date(date: datetime.date):
+def _format_date(date: datetime.date):
     return date.strftime("%Y-%m-%d") 
 
 
-def get_whoisds_zip(date: datetime.date) -> bool:
+def _get_whoisds_zip(date: datetime.date) -> bool:
     """
         Given a date download the zip file containing the newly registered domains for that date and update file
     """
-    date_string = __format_date(date)
+    date_string = _format_date(date)
     domain_file = Path(WHOISDS_FOLDER / f"{date_string}.txt")
 
     if domain_file.is_file():
@@ -43,7 +43,7 @@ def get_whoisds_zip(date: datetime.date) -> bool:
 
     return True
 
-def __get_domains_file():
+def _get_domains_file():
     for filename in os.listdir(WHOISDS_FOLDER):
         try:
             # Extract date from filename
@@ -55,7 +55,7 @@ def __get_domains_file():
             pass
         
         
-def clean_old_domains(max_days: int = 30) -> int:
+def clear_old_domains(max_days: int = 30) -> int:
     """
     Delete whoisds domain files that are older than max_days.
     
@@ -83,7 +83,7 @@ def clean_old_domains(max_days: int = 30) -> int:
     return total_cleaned
 
 
-def __update_domains(update_days : int = 10, max_workers: int = 10):
+def update_domains(update_days : int = 10, max_workers: int = 10):
     total_updated = 0
     today = datetime.today()
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -99,7 +99,7 @@ def __update_domains(update_days : int = 10, max_workers: int = 10):
             task = progress.add_task("[green]Updating domains file...", total=update_days)
             for i in range(0, update_days):
                 date = today - timedelta(days=i+1)
-                future_to_date[executor.submit(get_whoisds_zip, date)] = __format_date(date)
+                future_to_date[executor.submit(_get_whoisds_zip, date)] = _format_date(date)
                 
             for future in as_completed(future_to_date):
                 date = future_to_date[future]
@@ -133,7 +133,7 @@ def sniff_whoisds(domain: str, criteria: sniffer.SniffCriteria, max_workers: int
             
             total_files = 0
 
-            for date, file in __get_domains_file():
+            for date, file in _get_domains_file():
                 future_to_file[executor.submit(sniffer.sniff_file, file, domain, criteria)] = file
                 total_files += 1
             
@@ -173,9 +173,9 @@ def whoisds_cli(domain: str, criteria: sniffer.SniffCriteria, update_days : int 
     #clear if max_days is set
     if max_days > 0:
         with console.status("[bold green]Cleaning old Domains[/bold green]"):
-            clean_old_domains(max)
+            clear_old_domains(max)
 
-    __update_domains(update_days, max_workers)
+    update_domains(update_days, max_workers)
     
     return sniff_whoisds(domain, criteria)
 
