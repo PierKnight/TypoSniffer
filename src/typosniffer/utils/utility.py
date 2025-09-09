@@ -1,20 +1,21 @@
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from importlib import resources
 from pathlib import Path
 import re
-from typing import Any, Iterator, List, Optional
+from typing import List, Optional
 import click
 from typeguard import typechecked
 import tldextract
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
-from typosniffer.utils.console import console
 
 @typechecked
 def validate_regex(pattern: re.Pattern, message: str = None):
     """Return a callback function that validates the argument against the given pattern."""
     def callback(ctx, param, value):
-        if not re.match(pattern, value):
-            raise click.BadParameter(message if message else f"'{value}' does not match pattern '{pattern}'" )
+
+        values_to_check = [value] if isinstance(value, str) else value
+        print(values_to_check)
+        for val in values_to_check:
+            if not re.match(pattern, val):
+                raise click.BadParameter(message if message else f"'{val}' does not match pattern '{pattern}'" )
         return value
     return callback
 
@@ -48,7 +49,8 @@ def comma_separated_option(ctx, param, value: str) -> List[str]:
         return None
     return value.split(",")
 
+
 def strip_tld(domain: str) -> str:
     extracted = tldextract.extract(domain)
-    return extracted.suffix, f"{extracted.subdomain}.{extracted.domain}"
+    return extracted.suffix, f"{extracted.subdomain}.{extracted.domain}" if extracted.subdomain else extracted.domain
 
