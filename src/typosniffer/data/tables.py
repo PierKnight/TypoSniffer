@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, Enum, ForeignKey, String, Table, UniqueConstraint,DateTime
+from ctypes import ARRAY
+from sqlalchemy import Column, Integer, Enum, ForeignKey, String, Table, UniqueConstraint,DateTime, ARRAY, Boolean
 from sqlalchemy.orm import DeclarativeBase, relationship
 import enum
 
@@ -36,15 +37,19 @@ class SuspiciousDomain(Base):
     expiration_date = Column(DateTime, nullable=True)
     url = Column(String(100), nullable=False)
 
+    nameservers = Column(ARRAY(String(50)))
+    dnssec= Column(Boolean())
+
     
     original_domain = relationship("Domain", back_populates='suspicious_domains')
     entities = relationship("Entity", secondary=suspicious_domain_entity, back_populates="suspicious_domains")
 
 
 class EntityType(enum.Enum):
-    REGISTRANT = "a"
-    ADMINISTRATIVE = "b"
-    TECHNICAL = "c"
+    REGISTRANT = "REGISTRANT"
+    ADMINISTRATIVE = "ADMINISTRATIVE"
+    TECHNICAL = "TECHNICAL"
+    ABUSE = "ABUSE"
 
 
 class Entity(Base):
