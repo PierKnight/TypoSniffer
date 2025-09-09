@@ -94,7 +94,7 @@ def search_dns(domain: str, tld_dictionary: list[str], word_dictionary: list[str
                 
     return results
 
-def sniff_file(file: Path, domain: str, criteria: SniffCriteria = DEFAULT_CRITERIA) -> set[SniffResult]:
+def sniff_file(file: Path, domains: list[str], criteria: SniffCriteria = DEFAULT_CRITERIA) -> set[SniffResult]:
     """
     Given a file, it will read every domain in them and perform checks for similarities with a domain/domains
     """
@@ -103,27 +103,29 @@ def sniff_file(file: Path, domain: str, criteria: SniffCriteria = DEFAULT_CRITER
         for line in f:
                 
                 line = line.strip()
-            
-                _, original_domain = strip_tld(domain)
-                _, sniff_domain = strip_tld(line)
 
-                hamming = textdistance.hamming(original_domain, sniff_domain) if len(original_domain) == len(sniff_domain) else -1
+                for domain in domains:
 
-                sniff_result = SniffResult(
-                    domain=line,
-                    dameraulevenshtein=textdistance.damerau_levenshtein(original_domain, sniff_domain),
-                    hamming=hamming,
-                    jaro=textdistance.jaro_winkler(original_domain, sniff_domain),
-                    levenshtein=textdistance.levenshtein(original_domain, sniff_domain)
-                )
-            
-                is_sus = sniff_result.hamming <= criteria.hamming and sniff_result.hamming >= 0 or \
-                        sniff_result.dameraulevenshtein <= criteria.dameraulevenshtein or \
-                        sniff_result.jaro >= criteria.jaro or \
-                        sniff_result.levenshtein <= criteria.levenshtein
+                    _, original_domain = strip_tld(domain)
+                    _, sniff_domain = strip_tld(line)
 
-                if is_sus:
-                    results.add(sniff_result)
+                    hamming = textdistance.hamming(original_domain, sniff_domain) if len(original_domain) == len(sniff_domain) else -1
+
+                    sniff_result = SniffResult(
+                        domain=line,
+                        dameraulevenshtein=textdistance.damerau_levenshtein(original_domain, sniff_domain),
+                        hamming=hamming,
+                        jaro=textdistance.jaro_winkler(original_domain, sniff_domain),
+                        levenshtein=textdistance.levenshtein(original_domain, sniff_domain)
+                    )
+                
+                    is_sus = sniff_result.hamming <= criteria.hamming and sniff_result.hamming >= 0 or \
+                            sniff_result.dameraulevenshtein <= criteria.dameraulevenshtein or \
+                            sniff_result.jaro >= criteria.jaro or \
+                            sniff_result.levenshtein <= criteria.levenshtein
+
+                    if is_sus:
+                        results.add(sniff_result)
     return results
 
     

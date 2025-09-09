@@ -135,7 +135,7 @@ def clear(days: int):
 @cli.command(help = "Update And Scan Domains collected from whoisds.com")
 @click.option('-d', '--days', type=click.IntRange(min=1), default=1, help='Max days to update whoisds files')
 @click.option('-c', '--clear-days', type=click.IntRange(min=0), default=0, help='Clear whoisds domains older that this number of days')
-@click.argument('domain', callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
+@click.argument('domains', nargs=-1, callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
 @click.option('--dameraulevenshtein', type=click.IntRange(min=0), default=None, help='Override default dameraulevenshtein.')
 @click.option('--hamming', type=click.IntRange(min=0), default=None, help='Override default hamming.')
 @click.option('--jaro', type=click.FloatRange(min=0, max=1), default=None, help='Override default jaro.')
@@ -145,14 +145,15 @@ def clear(days: int):
 def scan(
     days: int,
     clear_days: int,
-    domain: str,
+    domains: list[str],
     dameraulevenshtein: int, 
     hamming: int,
     jaro: float,
     levenshtein: int,
     output: str | None,
     format: str
-):
+):  
+
     criteria = sniffer.SniffCriteria(
         dameraulevenshtein=dameraulevenshtein if dameraulevenshtein is not None else sniffer.DEFAULT_CRITERIA.dameraulevenshtein,
         hamming=hamming if hamming is not None else sniffer.DEFAULT_CRITERIA.hamming,
@@ -169,7 +170,7 @@ def scan(
     updated_files = whoisds.update_domains(days, max_workers=10)
     
     #sniff new updated files to find typo squatting
-    sniff_result = whoisds.sniff_whoisds(domain, criteria=criteria, whoisds_files=updated_files)
+    sniff_result = whoisds.sniff_whoisds(domains, criteria=criteria, whoisds_files=updated_files)
 
     #write to file if required (MOST LIKELY I WILL SUBSTITUTE THIS with a DB)
     if output:

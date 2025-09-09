@@ -1,6 +1,5 @@
 import base64
 from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 import os
 from pathlib import Path
@@ -118,7 +117,7 @@ def update_domains(update_days : int = 10, max_workers: int = 10) -> list[WhoIsD
     return total_updated
 
 
-def sniff_whoisds(domain: str, whoisds_files: list[WhoIsDsFile], criteria: sniffer.SniffCriteria, max_workers: int = 10) -> set[sniffer.SniffResult]:
+def sniff_whoisds(domains: list[str], whoisds_files: list[WhoIsDsFile], criteria: sniffer.SniffCriteria, max_workers: int = 10) -> set[sniffer.SniffResult]:
 
     os.makedirs(WHOISDS_FOLDER, exist_ok=True)
 
@@ -139,7 +138,7 @@ def sniff_whoisds(domain: str, whoisds_files: list[WhoIsDsFile], criteria: sniff
             total_files = 0
 
             for file in whoisds_files:
-                future_to_file[executor.submit(sniffer.sniff_file, file.path, domain, criteria)] = file
+                future_to_file[executor.submit(sniffer.sniff_file, file.path, domains, criteria)] = file
                 total_files += 1
             
             console.print(f"[bold green]Found {total_files} domain file/s![/bold green]")
@@ -169,22 +168,5 @@ def sniff_whoisds(domain: str, whoisds_files: list[WhoIsDsFile], criteria: sniff
 
     return results
     
-    
-
-
-def whoisds_cli(domain: str, criteria: sniffer.SniffCriteria, update_days : int = 10, max_days: int = -1, max_workers: int = 10):
-
-    #make sure whoisds_folder exists
-    
-    os.makedirs(WHOISDS_FOLDER, exist_ok=True)
-
-    #clear if max_days is set
-    if max_days > 0:
-        with console.status("[bold green]Cleaning old Domains[/bold green]"):
-            clear_old_domains(max)
-
-    update_domains(update_days, max_workers)
-    
-    return sniff_whoisds(domain, criteria)
 
     
