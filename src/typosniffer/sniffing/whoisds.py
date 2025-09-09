@@ -1,5 +1,6 @@
 import base64
 from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 import os
 from pathlib import Path
@@ -15,19 +16,25 @@ from rich.table import Table
 
 WHOISDS_FOLDER = config.FOLDER / "whoisds"
 
+class WhoIsDsFile:
 
-def _format_date(date: datetime.date):
-    return date.strftime("%Y-%m-%d") 
+    path: Path
+    date: str
+
+    def __init__(self, date: datetime):
+        date_string = date.strftime("%Y-%m-%d") 
+        self.date = date_string
+        self.path = Path(WHOISDS_FOLDER / f"{date_string}.txt")
 
 
-def _get_whoisds_zip(date: datetime.date) -> bool:
+def _get_whoisds_zip(file: WhoIsDsFile) -> bool:
     """
         Given a date download the zip file containing the newly registered domains for that date and update file
     """
-    date_string = _format_date(date)
-    domain_file = Path(WHOISDS_FOLDER / f"{date_string}.txt")
 
-    if domain_file.is_file():
+    date_string = file.date
+
+    if file.path.is_file():
         return False
 
     base64_date_zip = base64.b64encode(f"{date_string}.zip".encode("utf-8")).decode("utf-8")
@@ -36,24 +43,12 @@ def _get_whoisds_zip(date: datetime.date) -> bool:
 
     zip_file = ZipFile(BytesIO(response.content))
 
-    with zip_file.open("domain-names.txt") as src, open(domain_file, "wb") as dst:
+    with zip_file.open("domain-names.txt") as src, open(file.path, "wb") as dst:
          # read in chunks to avoid loading entire file into memory
         for chunk in iter(lambda: src.read(4096), b""):
             dst.write(chunk)
 
     return True
-
-def _get_domains_file():
-    for filename in os.listdir(WHOISDS_FOLDER):
-        try:
-            # Extract date from filename
-            file_date_str = filename.replace(".txt", "")
-            file_date = datetime.strptime(file_date_str, "%Y-%m-%d")
-            file_path = os.path.join(WHOISDS_FOLDER, filename)
-            yield file_date, file_path
-        except ValueError:
-            pass
-        
         
 def clear_old_domains(max_days: int = 30) -> int:
     """
@@ -83,11 +78,17 @@ def clear_old_domains(max_days: int = 30) -> int:
     return total_cleaned
 
 
-def update_domains(update_days : int = 10, max_workers: int = 10):
-    total_updated = 0
+def update_domains(update_days : int = 10, max_workers: int = 10) -> list[WhoIsDsFile]:
+    """
+        Scans stored whoisds domain files and updates them if missing in a specific day in the range (today - 1, totay - 1 - update_days)
+        returns the list of updated file dates.
+    """
+    os.makedirs(WHOISDS_FOLDER, exist_ok=True)
+
+    total_updated = []
     today = datetime.today()
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_date = {}
+        future_to_file = {}
 
         with Progress(
             SpinnerColumn(),
@@ -99,23 +100,27 @@ def update_domains(update_days : int = 10, max_workers: int = 10):
             task = progress.add_task("[green]Updating domains file...", total=update_days)
             for i in range(0, update_days):
                 date = today - timedelta(days=i+1)
-                future_to_date[executor.submit(_get_whoisds_zip, date)] = _format_date(date)
+                file = WhoIsDsFile(date)
+                future_to_file[executor.submit(_get_whoisds_zip, file)] = file
                 
-            for future in as_completed(future_to_date):
-                date = future_to_date[future]
+            for future in as_completed(future_to_file):
+                file = future_to_file[future]
                 try:
                     updated = future.result()
                     if updated:
-                        total_updated += 1
+                        total_updated.append(file)
                 except Exception as e:
                     console.print(f"[bold red]Failed to retrieve domain file: {date}, {e}[/bold red]") 
                 finally:
                     progress.update(task, advance=1)
-    console.print(f"[bold green]{total_updated} Domain File have been updated[/bold green]")
+    console.print(f"[bold green]{len(total_updated)} Domain File have been updated[/bold green]")
+
+    return total_updated
 
 
-def sniff_whoisds(domain: str, criteria: sniffer.SniffCriteria, max_workers: int = 10) -> set[sniffer.SniffResult]:
+def sniff_whoisds(domain: str, whoisds_files: list[WhoIsDsFile], criteria: sniffer.SniffCriteria, max_workers: int = 10) -> set[sniffer.SniffResult]:
 
+    os.makedirs(WHOISDS_FOLDER, exist_ok=True)
 
     results = set()
 
@@ -133,8 +138,8 @@ def sniff_whoisds(domain: str, criteria: sniffer.SniffCriteria, max_workers: int
             
             total_files = 0
 
-            for date, file in _get_domains_file():
-                future_to_file[executor.submit(sniffer.sniff_file, file, domain, criteria)] = file
+            for file in whoisds_files:
+                future_to_file[executor.submit(sniffer.sniff_file, file.path, domain, criteria)] = file
                 total_files += 1
             
             console.print(f"[bold green]Found {total_files} domain file/s![/bold green]")
@@ -151,13 +156,16 @@ def sniff_whoisds(domain: str, criteria: sniffer.SniffCriteria, max_workers: int
                     progress.update(task, advance=1)
 
     console.print("[bold green]Domain Sniffing completed![/bold green]")
-    table = Table(title="Suspicious Domains")
-    table.add_column("Domain", style="bold red")
-    domains = [r.domain for r in results]
-    for domain in domains:
-        table.add_row(domain)
 
-    console.print(table)
+    if len(results) > 0:
+        table = Table(title="Suspicious Domains")
+        table.add_column("Domain", style="bold red")
+        domains = [r.domain for r in results]
+        for domain in domains:
+            table.add_row(domain)
+        console.print(table)
+    else:
+        console.print("[bold green]Nothing new to see here[/bold green]")
 
     return results
     
