@@ -27,7 +27,7 @@ def _collect_whois_domains(domains, requests_per_minute: int):
 
 def find_whois(domains: list[str], requests_per_minute: int = 10, max_workers: int = 10):
 
-    whoisit.bootstrap()
+    whoisit.bootstrap(overrides=True)
 
     #domains that need to be processed this list will reduce over time    
     domains_to_process = list(domains)
@@ -47,7 +47,7 @@ def find_whois(domains: list[str], requests_per_minute: int = 10, max_workers: i
             
             for domains_per_tdl in queries.values():
                 for domain in domains_per_tdl:
-                    future_to_query[executor.submit(whoisit.domain, domain)] = domain
+                    future_to_query[executor.submit(whoisit.domain, domain, allow_insecure_ssl=True, follow_related=False)] = domain
 
             for future in as_completed(future_to_query):
                 try:
