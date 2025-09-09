@@ -2,12 +2,10 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import errno
 import socket
-import whois
-from typosniffer.utils import utility
+import whoisit
 from typosniffer.utils.console import console
 import tldextract
 import time
-import random
 
 def _collect_whois_domains(domains, requests_per_minute: int):
         """
@@ -29,6 +27,8 @@ def _collect_whois_domains(domains, requests_per_minute: int):
 
 def find_whois(domains: list[str], requests_per_minute: int = 10, max_workers: int = 10):
 
+    whoisit.bootstrap()
+
     #domains that need to be processed this list will reduce over time    
     domains_to_process = list(domains)
 
@@ -47,7 +47,7 @@ def find_whois(domains: list[str], requests_per_minute: int = 10, max_workers: i
             
             for domains_per_tdl in queries.values():
                 for domain in domains_per_tdl:
-                    future_to_query[executor.submit(whois.whois, domain)] = domain
+                    future_to_query[executor.submit(whoisit.domain, domain)] = domain
 
             for future in as_completed(future_to_query):
                 try:
