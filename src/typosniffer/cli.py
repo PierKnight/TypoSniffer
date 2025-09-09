@@ -4,13 +4,11 @@ import csv
 from dataclasses import asdict
 import json
 import click
-from typosniffer.sniffing import sniffer
-from typosniffer.sniffing.whoisfinder import find_whois
+from typosniffer.sniffing import sniffer, whoisds, whoisfinder
 from typosniffer.utils.console import console
 from typosniffer.config import config
 from typosniffer.fuzzing import fuzzer
 from typosniffer.utils import utility
-from typosniffer.whoisds import whoisds
 from typeguard import typechecked
 from dnstwist import VALID_FQDN_REGEX
 
@@ -135,7 +133,7 @@ def clear(days: int):
 
 
 @cli.command(help = "Update And Scan Domains collected from whoisds.com")
-@click.option('-d', '--days', type=click.IntRange(min=1), default=30, help='Max days to update whoisds files')
+@click.option('-d', '--days', type=click.IntRange(min=1), default=1, help='Max days to update whoisds files')
 @click.option('-c', '--clear-days', type=click.IntRange(min=0), default=0, help='Clear whoisds domains older that this number of days')
 @click.argument('domain', callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
 @click.option('--dameraulevenshtein', type=click.IntRange(min=0), default=None, help='Override default dameraulevenshtein.')
@@ -162,8 +160,18 @@ def scan(
         levenshtein=levenshtein if levenshtein is not None else sniffer.DEFAULT_CRITERIA.levenshtein,
     )
 
-    sniff_result = whoisds.whoisds_cli(domain, update_days=days, max_days=clear_days, criteria=criteria)
+    #clear if max_days is set
+    if clear_days > 0:
+        with console.status("[bold green]Cleaning old Domains[/bold green]"):
+            whoisds.clear_old_domains(clear_days)
 
+    #update domains files
+    updated_files = whoisds.update_domains(days, max_workers=10)
+    
+    #sniff new updated files to find typo squatting
+    sniff_result = whoisds.sniff_whoisds(domain, criteria=criteria, whoisds_files=updated_files)
+
+    #write to file if required (MOST LIKELY I WILL SUBSTITUTE THIS with a DB)
     if output:
         if format == "json":
             with open(output, "w") as f:
@@ -175,16 +183,9 @@ def scan(
                 for sniff in sniff_result:
                     writer.writerow([sniff.domain, sniff.dameraulevenshtein, sniff.hamming, sniff.jaro, sniff.levenshtein])
     
+    #given the list of suspitious domains retrieve their respective whois data
     with console.status("[bold green]Retrieving whois data[/bold green]"):
-        print(find_whois([sniff.domain for sniff in sniff_result]))
-
-            
-    
-
-@cli.command
-def test():
-    print(find_whois(["google.com"]))
-
+        console.print(whoisfinder.find_whois([sniff.domain for sniff in sniff_result]))
 
                                     
 if __name__ == "__main__":
