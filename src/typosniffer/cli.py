@@ -233,7 +233,6 @@ def domain():
 def add(names):
     """Add a new domain"""
     domains = [DomainDTO(name = name) for name in names]
-    click.echo(f"Domain '{domains}' added.")
 
     service.add_domains(domains)
 
@@ -245,6 +244,14 @@ def remove(names):
     domains = [DomainDTO(name = name) for name in names]
     removed = service.remove_domains(domains)
     console.print(f"Removed {removed} domains")
+
+@domain.command()
+@catch_errors
+def all():
+    """Get all registered domains"""
+    domains = service.get_domains()
+    for domain in domains:
+        console.print(f"{domain.name}")
 
 
 cli.add_command(domain)

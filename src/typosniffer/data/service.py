@@ -1,3 +1,4 @@
+from typing import Type
 from pydantic import BaseModel
 from typosniffer.data.dto import DomainDTO
 from typosniffer.data.database import Session
@@ -9,6 +10,22 @@ from typosniffer.utils.console import console
 
 def dto_to_orm(dto: BaseModel, orm_cls):
     return orm_cls(**dto.model_dump())
+
+
+def orm_to_dto(orm, dto: Type[BaseModel]):
+    return dto.model_validate(orm)
+
+
+def get_domains() -> list[DomainDTO]:
+    """Retrieve all domains that need to be scanned"""
+
+    with Session() as session:
+
+        domains = session.query(Domain).all()
+
+        domain_dtos = [orm_to_dto(domain, DomainDTO) for domain in domains]
+
+        return domain_dtos
 
 
 def add_domains(domains: list[DomainDTO]):
@@ -36,6 +53,9 @@ def remove_domains(domains: list[DomainDTO]):
         session.commit()
         
     return deleted_count
+
+
+
 
 
         
