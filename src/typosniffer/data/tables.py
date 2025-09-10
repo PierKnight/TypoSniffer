@@ -10,7 +10,7 @@ class Domain(Base):
     __tablename__ = "domain"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False)
+    name = Column(String(100), nullable=False, unique=True)
     suspicious_domains = relationship("SuspiciousDomain", back_populates='original_domain', cascade='all, delete-orphan')
 
 
