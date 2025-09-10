@@ -4,6 +4,7 @@ import csv
 from dataclasses import asdict
 import json
 import click
+from .data.database import init_db
 from typosniffer.sniffing import sniffer, whoisds, whoisfinder
 from typosniffer.utils.console import console
 from typosniffer.config import config
@@ -32,12 +33,12 @@ def print_banner():
 By Pierluigi Altimari                                                     
 
 """
-    console.print(banner, style="bold green", highlight=False)
 
 @click.group()
 @click.option("-v", "--verbose", is_flag=True)
 @typechecked
 def cli(verbose: bool):
+
     print_banner()
     config.load()
     
@@ -187,6 +188,14 @@ def scan(
     #given the list of suspitious domains retrieve their respective whois data
     with console.status("[bold green]Retrieving whois data[/bold green]"):
         console.print(whoisfinder.find_whois([sniff.domain for sniff in sniff_result]))
+
+
+@cli.command
+def test():
+
+    init_db()
+    init_db()
+
 
                                     
 if __name__ == "__main__":
