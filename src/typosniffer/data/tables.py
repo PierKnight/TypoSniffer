@@ -1,11 +1,10 @@
-from ctypes import ARRAY
 from sqlalchemy import Column, Integer, Enum, ForeignKey, String, Table, UniqueConstraint,DateTime, ARRAY, Boolean
-from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy.orm import relationship, declarative_base
 import enum
 
 
-class Base(DeclarativeBase):
-    pass
+
+Base = declarative_base()
 
 class Domain(Base):
     __tablename__ = "domain"
@@ -74,7 +73,5 @@ class Entity(Base):
     )
 
     suspicious_domains = relationship("SuspiciousDomain", secondary=suspicious_domain_entity, back_populates="entities")
-    
-
 
 
