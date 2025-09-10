@@ -14,7 +14,7 @@ DATABASE_URL = URL.create(
     database = os.environ.get('DB_NAME', 'postgres')
 )
 
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=False)
 
 Session = scoped_session(sessionmaker(bind=engine))
    
