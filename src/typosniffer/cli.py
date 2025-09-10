@@ -165,7 +165,6 @@ def clear(days: int):
 @cli.command()
 @click.option('-d', '--days', type=click.IntRange(min=1), default=1, help='Max days to update whoisds files')
 @click.option('-c', '--clear-days', type=click.IntRange(min=0), default=0, help='Clear whoisds domains older that this number of days')
-@click.argument('domains', nargs=-1, callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
 @click.option('--dameraulevenshtein', type=click.IntRange(min=0), default=None, help='Override default dameraulevenshtein.')
 @click.option('--hamming', type=click.IntRange(min=0), default=None, help='Override default hamming.')
 @click.option('--jaro', type=click.FloatRange(min=0, max=1), default=None, help='Override default jaro.')
@@ -175,7 +174,6 @@ def clear(days: int):
 def scan(
     days: int,
     clear_days: int,
-    domains: list[str],
     dameraulevenshtein: int, 
     hamming: int,
     jaro: float,
@@ -184,6 +182,13 @@ def scan(
     format: str
 ):  
     """"Update And Scan Domains collected from whoisds.com"""
+
+
+    domains = service.get_domains()
+
+    if len(domains) == 0:
+        console.print("Found 0 domains to scan, add domains using: typosniffer domain add")
+        return
     
     criteria = sniffer.SniffCriteria(
         dameraulevenshtein=dameraulevenshtein if dameraulevenshtein is not None else sniffer.DEFAULT_CRITERIA.dameraulevenshtein,
@@ -247,8 +252,8 @@ def remove(names):
 
 @domain.command()
 @catch_errors
-def all():
-    """Get all registered domains"""
+def list():
+    """Get list of registered domains"""
     domains = service.get_domains()
     for domain in domains:
         console.print(f"{domain.name}")
