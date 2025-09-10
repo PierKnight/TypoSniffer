@@ -2,16 +2,20 @@
 
 import csv
 from dataclasses import asdict
+from functools import wraps
 import json
 import click
-from .data.database import init_db
+from pydantic import ValidationError
+from typosniffer.data import service
 from typosniffer.sniffing import sniffer, whoisds, whoisfinder
 from typosniffer.utils.console import console
 from typosniffer.config import config
 from typosniffer.fuzzing import fuzzer
 from typosniffer.utils import utility
 from typeguard import typechecked
+from rich.table import Table
 from dnstwist import VALID_FQDN_REGEX
+from .data.dto import *
 
 def print_banner():
     banner = \
@@ -33,17 +37,41 @@ def print_banner():
 By Pierluigi Altimari                                                     
 
 """
+    console.print(f"[bold green]{banner}[/bold green]")
+
+
+def catch_errors(func):
+    """Decorator to catch exceptions in a function or method."""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except ValidationError as e:
+            table = Table(title="Validation Errors")
+            table.add_column("Field", style="cyan")
+            table.add_column("Error", style="red")
+            table.add_column("Value", style="yellow")
+
+            for err in e.errors():
+                field = ".".join(map(str, err["loc"]))
+                table.add_row(field, err["msg"], str(err.get("input")))
+
+            console.print(table)
+        except Exception:
+            console.print_exception(show_locals=True)
+            return None
+    return wrapper
+
 
 @click.group()
 @click.option("-v", "--verbose", is_flag=True)
 @typechecked
 def cli(verbose: bool):
-
     print_banner()
     config.load()
     
 
-@cli.command(help="Generate possible permutations of a given domain used in typosquatting")
+@cli.command()
 @click.option(
     '-tld', '--tld-dictionary',
     type=click.Path(exists=True),
@@ -63,7 +91,7 @@ def cli(verbose: bool):
 @click.argument('filename', type=click.Path(dir_okay=True, writable=True))
 @typechecked
 def fuzzing(tld_dictionary: list[str], word_dictionary: list[str], filename: str, format: str, domain: str):
-
+    """Generate possible permutations of a given domain used in typosquatting"""
     format = format.lower()
 
     console.print("[bold green]Fuzzing Domain[/bold green]")
@@ -87,7 +115,7 @@ def fuzzing(tld_dictionary: list[str], word_dictionary: list[str], filename: str
                 for permutation in fuzzer.fuzz(domain, tld_dictionary, word_dictionary):
                     writer.writerow(permutation)
 
-@cli.command(help = "Using a set of DNS servers and a target domain, return all potential fuzzed subdomains or domain variations that can be resolved.")
+@cli.command()
 @click.option(
     '-w', '--max_workers',
     type=int, 
@@ -119,6 +147,7 @@ def fuzzing(tld_dictionary: list[str], word_dictionary: list[str], filename: str
 @click.argument('domain', callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
 @typechecked
 def sniff(tld_dictionary: list[str], word_dictionary: list[str], nameservers: list[str], max_workers: int, output: str | None, domain: str):
+    """Using a set of DNS servers and a target domain, return all potential fuzzed subdomains or domain variations that can be resolved"""
     with console.status("[bold green]Sniffing potential similar domains[/bold green]"):
         results = sniffer.search_dns(domain, tld_dictionary=tld_dictionary, word_dictionary=word_dictionary, nameservers=nameservers, max_workers=max_workers)
         if output:
@@ -133,7 +162,7 @@ def clear(days: int):
     console.print(f"[bold green]Cleared {removed_files} old domains[/bold green]")
 
 
-@cli.command(help = "Update And Scan Domains collected from whoisds.com")
+@cli.command()
 @click.option('-d', '--days', type=click.IntRange(min=1), default=1, help='Max days to update whoisds files')
 @click.option('-c', '--clear-days', type=click.IntRange(min=0), default=0, help='Clear whoisds domains older that this number of days')
 @click.argument('domains', nargs=-1, callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
@@ -154,7 +183,8 @@ def scan(
     output: str | None,
     format: str
 ):  
-
+    """"Update And Scan Domains collected from whoisds.com"""
+    
     criteria = sniffer.SniffCriteria(
         dameraulevenshtein=dameraulevenshtein if dameraulevenshtein is not None else sniffer.DEFAULT_CRITERIA.dameraulevenshtein,
         hamming=hamming if hamming is not None else sniffer.DEFAULT_CRITERIA.hamming,
@@ -190,13 +220,30 @@ def scan(
         console.print(whoisfinder.find_whois([sniff.domain for sniff in sniff_result]))
 
 
-@cli.command
-def test():
-
-    init_db()
-    init_db()
 
 
-                                    
-if __name__ == "__main__":
-    cli()
+@click.group()
+@catch_errors
+def domain():
+    """Manage domains"""
+
+@domain.command()
+@click.argument('names', nargs=-1)
+@catch_errors
+def add(names):
+    """Add a new domain"""
+    domains = [DomainDTO(name = name) for name in names]
+    click.echo(f"Domain '{domains}' added.")
+
+    service.add_domains(domains)
+
+@domain.command()
+@click.argument('names', nargs=-1)
+@catch_errors
+def remove(names):
+    """Remove an existing domain"""
+    domains = [DomainDTO(name = name) for name in names]
+    click.echo(f"Domain '{domains}' removed.")
+
+
+cli.add_command(domain)
