@@ -243,7 +243,8 @@ def add(names):
 def remove(names):
     """Remove an existing domain"""
     domains = [DomainDTO(name = name) for name in names]
-    click.echo(f"Domain '{domains}' removed.")
+    removed = service.remove_domains(domains)
+    console.print(f"Removed {removed} domains")
 
 
 cli.add_command(domain)
