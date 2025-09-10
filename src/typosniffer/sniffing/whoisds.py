@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExec
 from datetime import datetime, timedelta
 import os
 from pathlib import Path
+from typosniffer.data.dto import DomainDTO
 from typosniffer.utils import request
 from typosniffer.config import config
 from typosniffer.utils.console import console
@@ -117,7 +118,7 @@ def update_domains(update_days : int = 10, max_workers: int = 10) -> list[WhoIsD
     return total_updated
 
 
-def sniff_whoisds(domains: list[str], whoisds_files: list[WhoIsDsFile], criteria: sniffer.SniffCriteria, max_workers: int = 10) -> set[sniffer.SniffResult]:
+def sniff_whoisds(domains: list[DomainDTO], whoisds_files: list[WhoIsDsFile], criteria: sniffer.SniffCriteria, max_workers: int = 10) -> set[sniffer.SniffResult]:
 
     os.makedirs(WHOISDS_FOLDER, exist_ok=True)
 

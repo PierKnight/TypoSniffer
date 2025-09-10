@@ -5,6 +5,7 @@ from pathlib import Path
 import dns
 from dns import exception
 from typeguard import typechecked
+from typosniffer.data.dto import DomainDTO
 from typosniffer.fuzzing import fuzzer
 from typosniffer.utils.console import console
 from dns import resolver
@@ -14,6 +15,7 @@ from typosniffer.utils.utility import strip_tld
 
 @dataclass(frozen=True)
 class SniffResult:
+    original_domain: str
     domain: str = field(compare=True)
     dameraulevenshtein: int = field(compare=False)
     hamming: int = field(compare=False)
@@ -94,7 +96,7 @@ def search_dns(domain: str, tld_dictionary: list[str], word_dictionary: list[str
                 
     return results
 
-def sniff_file(file: Path, domains: list[str], criteria: SniffCriteria = DEFAULT_CRITERIA) -> set[SniffResult]:
+def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria = DEFAULT_CRITERIA) -> set[SniffResult]:
     """
     Given a file, it will read every domain in them and perform checks for similarities with a domain/domains
     """
@@ -106,12 +108,13 @@ def sniff_file(file: Path, domains: list[str], criteria: SniffCriteria = DEFAULT
 
                 for domain in domains:
 
-                    _, original_domain = strip_tld(domain)
+                    _, original_domain = strip_tld(domain.name)
                     _, sniff_domain = strip_tld(line)
 
                     hamming = textdistance.hamming(original_domain, sniff_domain) if len(original_domain) == len(sniff_domain) else -1
 
                     sniff_result = SniffResult(
+                        original_domain=original_domain,
                         domain=line,
                         dameraulevenshtein=textdistance.damerau_levenshtein(original_domain, sniff_domain),
                         hamming=hamming,

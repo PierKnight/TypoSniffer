@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, Enum, ForeignKey, String, Table, UniqueConstraint,DateTime, ARRAY, Boolean
 from sqlalchemy.orm import relationship, declarative_base
-import enum
+
+from typosniffer.data.dto import EntityType
 
 
 
@@ -44,13 +45,6 @@ class SuspiciousDomain(Base):
     entities = relationship("Entity", secondary=suspicious_domain_entity, back_populates="suspicious_domains")
 
 
-class EntityType(enum.Enum):
-    REGISTRANT = "REGISTRANT"
-    ADMINISTRATIVE = "ADMINISTRATIVE"
-    TECHNICAL = "TECHNICAL"
-    ABUSE = "ABUSE"
-
-
 class Entity(Base):
     __tablename__ = "entity"
 
@@ -60,13 +54,13 @@ class Entity(Base):
 
     name = Column(String(100), nullable=False)
     email = Column(String(100), nullable=False)
-    po_box = Column(String(100), nullable=False)
-    ext_address = Column(String(100), nullable=False)
-    street_address = Column(String(100), nullable=False)
-    locality = Column(String(100), nullable=False)
-    region = Column(String(2), nullable=False)
-    postal_code = Column(String(10), nullable=False)
-    country = Column(String(100), nullable=False)
+    po_box = Column(String(100), nullable=True)
+    ext_address = Column(String(100), nullable=True)
+    street_address = Column(String(100), nullable=True)
+    locality = Column(String(100), nullable=True)
+    region = Column(String(2), nullable=True)
+    postal_code = Column(String(10), nullable=True)
+    country = Column(String(100), nullable=True)
 
     __table_args__ = (
         UniqueConstraint('name', 'type', name='uix_entity_type'),
