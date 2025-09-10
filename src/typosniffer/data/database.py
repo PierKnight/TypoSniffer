@@ -11,7 +11,7 @@ DATABASE_URL = URL.create(
     password = os.environ.get('DB_PASSWORD', 'postgres'),
     host = os.environ.get('DB_HOST', 'localhost'),
     port = os.environ.get('DB_PORT', '5432'),
-    database = os.environ.get('DB_NAME', 'typosniffer')
+    database = os.environ.get('DB_NAME', 'postgres')
 )
 
 engine = create_engine(DATABASE_URL, echo=True)
