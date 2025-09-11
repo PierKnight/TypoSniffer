@@ -17,9 +17,6 @@ DATABASE_URL = URL.create(
 engine = create_engine(DATABASE_URL, echo=False)
 
 Session = scoped_session(sessionmaker(bind=engine))
-   
-        
 
-    
-
+Base.metadata.create_all(engine)
 

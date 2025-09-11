@@ -1,9 +1,10 @@
-from typing import Type
+from typing import Dict, Type
 from pydantic import BaseModel
 from typosniffer.data.dto import DomainDTO
 from typosniffer.data.database import Session
 from typosniffer.data.tables import *
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session as OrmSession
 from typosniffer.sniffing.sniffer import SniffResult
 from typosniffer.utils.console import console
 
@@ -49,109 +50,130 @@ def remove_domains(domains: list[DomainDTO]):
 
     with Session() as session:
         
-        deleted_count = session.query(Domain).filter(Domain.name.in_(domain_names)).delete(synchronize_session=False)
+        deleted_count = session.query(Domain).filter(Domain.name.in_(domain_names)).delete()
+        _delete_entity_orphan(session)
         session.commit()
         
     return deleted_count
 
+def clear_domains():
+    with Session() as session:
+        session.query(Domain).delete()
+        _delete_entity_orphan(session)
+        session.commit()
 
-def _get_domain(session, domain_name: str) -> Domain:
+def _get_domain(session: OrmSession, domain_name: str) -> Domain:
     return session.query(Domain).filter_by(name=domain_name).first()
 
 
-def _get_or_create_entity(session, type_: EntityType, **kwargs) -> Entity:
-    name = kwargs["name"]
-    entity = session.query(Entity).filter_by(name=name, type=type_).first()
+def _delete_entity_orphan(session: OrmSession):
+
+    orphans = session.query(Entity).filter(~Entity.suspicious_domains.any()).all()
+    for orphan in orphans:
+        session.delete(orphan)
+
+def _get_or_create_entity(session: OrmSession, entity_type: EntityType, entity_data: dict) -> Entity:
+
+    name = entity_data.get("name", "")
+    url = entity_data.get("url", "")
+    entity = session.query(Entity).filter_by(name=name, type=entity_type, url=url).first()
     if entity is None:
-        entity = Entity(name=name, type=type_, **kwargs)
+
+        flat_data = entity_data.copy()
+        address_data = flat_data.pop("address", {})
+        flat_data.update(address_data)
+
+        valid_fields = {col.name for col in Entity.__table__.columns}
+        filtered_data = {k: v for k, v in flat_data.items() if k in valid_fields}
+        filtered_data['type'] = entity_type
+
+        entity = Entity(**filtered_data)
         session.add(entity)
         try:
-            session.commit()
+            session.flush()  # ensures it has an id
         except IntegrityError:
             session.rollback()
-            entity = session.query(Entity).filter_by(name=name, type=type_).first()
     return entity
 
 
 
-def get_or_create_suspicious_domain(
-    session,
-    name: str,
-    original_domain_name: str,  # Only the name is known
-    whois_server: str,
-    url: str,
-    nameservers: list[str] | None = None,
-    dnssec: bool = False,
-    entities: list[Entity] | None = None,
-) -> SuspiciousDomain:
 
+
+def create_suspicious_domain(
+    session: OrmSession,
+    original_domain_name: str,  # Only the name is known
+    suspicious_domain: SuspiciousDomain,
+    entities: list[Entity] | None = None, 
+) -> SuspiciousDomain:
+    
     # Get original domain
     original_domain = _get_domain(session, original_domain_name)
-
     if original_domain is None:
         raise ValueError(f"Original domain '{original_domain_name}' not found")
     
-
     # Check if suspicious domain already exists
     suspicious = (
         session.query(SuspiciousDomain)
-        .filter_by(name=name, original_domain_id=original_domain.id)
+        .filter_by(name=suspicious_domain.name, original_domain_id=original_domain.id)
         .first()
     )
 
-    if suspicious:
-        suspicious.whois_server = whois_server
-        suspicious.url = url
-        suspicious.nameservers = nameservers
-        suspicious.dnssec = dnssec
-    else:
-        suspicious = SuspiciousDomain(
-            name=name,
-            whois_server=whois_server,
-            url=url,
-            nameservers=nameservers,
-            dnssec=dnssec,
-            original_domain=original_domain
-        )
+    if suspicious is None:
+        # Add suspicious domain to session BEFORE setting relationships
+        suspicious = suspicious_domain
+        suspicious.original_domain = original_domain
         session.add(suspicious)
+        session.flush() 
+    # Link entities (existing or new)
+    for entity in entities:
+        if entity not in suspicious.entities:
+            suspicious.entities.append(entity)
 
-    # Link entities
-    if entities:
-        for entity in entities:
-            if entity not in suspicious.entities:
-                suspicious.entities.append(entity)
-
-    
     session.commit()
-   
-
     return suspicious
 
 
-def add_suspicious_domain(sniff_results: dict[SniffResult, dict]):
+
+def add_suspicious_domain(sniff_results: set[SniffResult], whois_data: Dict):
     """Add Suspicious domain given sniff result and domain data"""
 
     with Session() as session:
-        for result, data in sniff_results.items():
+        for result in sniff_results:
+            
 
-            entities: list[Entity] = []
+            data = whois_data.get(result.domain)
 
-            for entityType in EntityType:
-                entity = data['entities'].get(entityType.name.lower())
-                if entity:
-                    entities.append(_get_or_create_entity(session, entityType, entity))
+            if data:
+
+                #list of entities present in the whois data
+                found_entities: list[Entity] = []
+                
+                for entityType in EntityType:
+                    entities = data['entities'].get(entityType.name.lower(), [])
+                    
+                    for entity in entities:
+                        found_entities.append(_get_or_create_entity(session, entityType, entity))
 
 
-            get_or_create_suspicious_domain(
-                session=session,
-                name=result.domain,
-                original_domain_name=result.original_domain_name,
-                nameservers=data['nameservers'],
-                url=data['url'],
-                dnssec=data['dnssec'],
-                whois_server=data['whois_server'],
-                entities=entities
-            )
+                create_suspicious_domain(
+                    session=session,
+                    original_domain_name=result.original_domain,
+                    entities=found_entities,
+                    suspicious_domain=SuspiciousDomain(
+                        name=result.domain,
+                        nameservers=data['nameservers'],
+                        url=data['url'],
+                        dnssec=data['dnssec'],
+                        whois_server=data['whois_server'],
+                        entities=found_entities,
+                        updated_date = data['last_changed_date'],
+                        creation_date = data['registration_date'],
+                        expiration_date = data['expiration_date'],
+                        status = data['status']
+                    )
+
+                )
+
 
 
 

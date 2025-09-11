@@ -2,6 +2,7 @@
 
 import csv
 from dataclasses import asdict
+from datetime import datetime, timedelta
 from functools import wraps
 import json
 import click
@@ -14,6 +15,7 @@ from typosniffer.fuzzing import fuzzer
 from typosniffer.utils import utility
 from typeguard import typechecked
 from rich.table import Table
+from rich.prompt import Confirm
 from dnstwist import VALID_FQDN_REGEX
 from .data.dto import *
 
@@ -163,14 +165,15 @@ def clear(days: int):
 
 
 @cli.command()
-@click.option('-d', '--days', type=click.IntRange(min=1), default=1, help='Max days to update whoisds files')
-@click.option('-c', '--clear-days', type=click.IntRange(min=0), default=0, help='Clear whoisds domains older that this number of days')
-@click.option('--dameraulevenshtein', type=click.IntRange(min=0), default=None, help='Override default dameraulevenshtein.')
-@click.option('--hamming', type=click.IntRange(min=0), default=None, help='Override default hamming.')
-@click.option('--jaro', type=click.FloatRange(min=0, max=1), default=None, help='Override default jaro.')
-@click.option('--levenshtein', type=click.IntRange(min=0), default=None, help='Override default levenshtein.')
+@click.option('-d', '--days', envvar="SNIFF_DAYS", type=click.IntRange(min=1), default=1, help='Max days to update whoisds files')
+@click.option('-c', '--clear-days', envvar="SNIFF_CLEAR_DAYS", type=click.IntRange(min=0), default=0, help='Clear whoisds domains older that this number of days')
+@click.option('--dameraulevenshtein', envvar="SNIFF_DAMERAULEVENSHTEIN", type=click.IntRange(min=0), default=None, help='Override default dameraulevenshtein.')
+@click.option('--hamming', type=click.IntRange(min=0), envvar="SNIFF_HAMMING", default=None, help='Override default hamming.')
+@click.option('--jaro', type=click.FloatRange(min=0, max=1), envvar="SNIFF_JARO", default=None, help='Override default jaro.')
+@click.option('--levenshtein', type=click.IntRange(min=0), envvar="SNIFF_LEVENSHTEIN", default=None, help='Override default levenshtein.')
 @click.option('-o', '--output',type=click.Path(dir_okay=True, writable=True), help='File to write results')
 @click.option('-f', '--format', type=click.Choice(['csv', 'json'], case_sensitive=False), default='json', help='format of output file')
+@click.option('--force', is_flag=True, help='force scan even on already updated domains')
 def scan(
     days: int,
     clear_days: int,
@@ -179,17 +182,20 @@ def scan(
     jaro: float,
     levenshtein: int,
     output: str | None,
-    format: str
+    format: str,
+    force: bool
 ):  
     """"Update And Scan Domains collected from whoisds.com"""
 
 
     domains = service.get_domains()
 
+
     if len(domains) == 0:
         console.print("Found 0 domains to scan, add domains using: typosniffer domain add")
         return
     
+    #setup criteria used for identifying suspicious domains
     criteria = sniffer.SniffCriteria(
         dameraulevenshtein=dameraulevenshtein if dameraulevenshtein is not None else sniffer.DEFAULT_CRITERIA.dameraulevenshtein,
         hamming=hamming if hamming is not None else sniffer.DEFAULT_CRITERIA.hamming,
@@ -197,32 +203,46 @@ def scan(
         levenshtein=levenshtein if levenshtein is not None else sniffer.DEFAULT_CRITERIA.levenshtein,
     )
 
+    if clear_days == 0:
+        clear_days = days
+
     #clear if max_days is set
-    if clear_days > 0:
-        with console.status("[bold green]Cleaning old Domains[/bold green]"):
-            whoisds.clear_old_domains(clear_days)
+    with console.status("[bold green]Cleaning old Domains[/bold green]"):
+        whoisds.clear_old_domains(clear_days)
 
     #update domains files
-    updated_files = whoisds.update_domains(days, max_workers=10)
-    
-    #sniff new updated files to find typo squatting
-    sniff_result = whoisds.sniff_whoisds(domains, criteria=criteria, whoisds_files=updated_files)
+    domains_files = whoisds.update_domains(days, max_workers=10)
 
-    #write to file if required (MOST LIKELY I WILL SUBSTITUTE THIS with a DB)
-    if output:
-        if format == "json":
-            with open(output, "w") as f:
-                json.dump([asdict(sniff) for sniff in sniff_result], f, indent=4)
-        elif(format == "csv"):
-            with open(output, "w") as f:
-                writer = csv.writer(f)
-                writer.writerow(["domain", "dameraulevenshtein", "hamming", "jaro", "levenshtein"])
-                for sniff in sniff_result:
-                    writer.writerow([sniff.domain, sniff.dameraulevenshtein, sniff.hamming, sniff.jaro, sniff.levenshtein])
+    if force:
+        today = datetime.today()
+        domains_files = [whoisds.WhoIsDsFile(today - timedelta(days=day+1)) for day in range(0, days)]
     
-    #given the list of suspitious domains retrieve their respective whois data
-    with console.status("[bold green]Retrieving whois data[/bold green]"):
-        console.print(whoisfinder.find_whois([sniff.domain for sniff in sniff_result]))
+    if len(domains_files) > 0:
+
+        #sniff new updated files to find typo squatting
+        sniff_result = whoisds.sniff_whoisds(domains, criteria=criteria, whoisds_files=domains_files)
+
+        #write to file if required (MOST LIKELY I WILL SUBSTITUTE THIS with a DB)
+        if output:
+            if format == "json":
+                with open(output, "w") as f:
+                    json.dump([asdict(sniff) for sniff in sniff_result], f, indent=4)
+            elif(format == "csv"):
+                with open(output, "w") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["domain", "original_domain", "dameraulevenshtein", "hamming", "jaro", "levenshtein"])
+                    for sniff in sniff_result:
+                        writer.writerow([sniff.domain, sniff.original_domain, sniff.dameraulevenshtein, sniff.hamming, sniff.jaro, sniff.levenshtein])
+        
+        #given the list of suspicious domains retrieve their respective whois data
+        with console.status("[bold green]Retrieving whois data[/bold green]"):
+            whois_data = whoisfinder.find_whois([sniff.domain for sniff in sniff_result])
+        with console.status("[bold green]Updating Suspicious Domains List[/bold green]"):
+            service.add_suspicious_domain(sniff_result, whois_data)
+    else:
+        console.print("Force a new scan by removing cached domains: typosniffer clear 1")
+
+
 
 
 
@@ -257,6 +277,17 @@ def list():
     domains = service.get_domains()
     for domain in domains:
         console.print(f"{domain.name}")
+
+@domain.command()
+@catch_errors
+def clear():
+    """Clear list of registered domains"""
+
+    if Confirm.ask("[bold red]Are you sure you want to delete ALL registered domains?[/bold red]"):
+        service.clear_domains()
+        console.print("[green]✅ All domains deleted successfully.[/green]")
+    else:
+        console.print("[yellow]⚠️ Operation cancelled.[/yellow]")
 
 
 cli.add_command(domain)
