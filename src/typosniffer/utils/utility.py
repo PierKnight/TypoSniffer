@@ -1,7 +1,7 @@
 from importlib import resources
 from pathlib import Path
 import re
-from typing import List, Optional
+from typing import List
 import click
 from typeguard import typechecked
 import tldextract
@@ -38,9 +38,10 @@ def get_dictionary(file: str) -> Path:
 def punicode_to_unicode(s: str) -> str:
     return s.encode("ascii").decode("idna")
 
-def list_file_option(ctx, param, value: str) -> Optional[List[str]]:
+def list_file_option(ctx, param, value: str) -> List[str]:
     if value is None:
         return None
+    
     return read_lines(Path(value))
 
 
