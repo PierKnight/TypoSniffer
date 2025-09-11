@@ -53,7 +53,7 @@ def resolve_domain(domain, nameserver):
     return [rdata.to_text() for rdata in answer]
 
 @typechecked
-def search_dns(domain: str, tld_dictionary: list[str], word_dictionary: list[str], nameservers: list[str], max_workers=30):
+def search_dns(domain: DomainDTO, tld_dictionary: list[str], word_dictionary: list[str], nameservers: list[str], max_workers=30):
 
     nameserver_cycle = cycle(nameservers)
 
@@ -77,9 +77,9 @@ def search_dns(domain: str, tld_dictionary: list[str], word_dictionary: list[str
 
 
             for permutation in permutations:
-                    domain_name = permutation.domain
-                    future = executor.submit(resolve_domain, domain_name, next(nameserver_cycle))
-                    future_to_domain[future] = domain_name
+                domain_name = permutation.domain
+                future = executor.submit(resolve_domain, domain_name, next(nameserver_cycle))
+                future_to_domain[future] = domain_name
                     
                 
             for future in as_completed(future_to_domain):

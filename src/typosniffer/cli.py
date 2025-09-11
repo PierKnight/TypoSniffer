@@ -5,6 +5,7 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from functools import wraps
 import json
+from pathlib import Path
 import click
 from pydantic import ValidationError
 from typosniffer.data import service
@@ -89,33 +90,39 @@ def cli(verbose: bool):
     default=utility.get_dictionary("words.txt")
 )
 @click.option('-f', '--format', type=click.Choice(fuzzer.POSSIBLE_FORMATS, case_sensitive=False), default=fuzzer.POSSIBLE_FORMATS[2], help='format of output file')
-@click.argument('domain', callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
+@click.option('-u', '--unicode', is_flag=True, default=False, help='Write domains in unicode instead of punycode')
+@click.argument('domain')
 @click.argument('filename', type=click.Path(dir_okay=True, writable=True))
-@typechecked
-def fuzzing(tld_dictionary: list[str], word_dictionary: list[str], filename: str, format: str, domain: str):
+@catch_errors
+def fuzzing(unicode: bool, tld_dictionary: list[str], word_dictionary: list[str], filename: str, format: str, domain: str):
     """Generate possible permutations of a given domain used in typosquatting"""
     format = format.lower()
 
-    console.print("[bold green]Fuzzing Domain[/bold green]")
-    
+    domain_dto = DomainDTO(name=domain)
+
     with console.status("[bold green]Running Domain Fuzzing..[/bold green]"):
-        with open(filename, "w", encoding="utf-8") as f:
+        file_path = Path(filename).resolve()
+        with open(file_path, "w", encoding="utf-8") as f:
 
             if format == 'json':
                 output = dict()
-                for permutation in fuzzer.fuzz(domain, tld_dictionary, word_dictionary):
+                for permutation in fuzzer.fuzz(domain_dto, tld_dictionary, word_dictionary, unicode):
                     if permutation.fuzzer in output:
                         output[permutation.fuzzer].append(permutation.domain)
                     else:
                         output[permutation.fuzzer] = [permutation.domain]
                 json.dump(output, f, indent=4)
             elif format == "plain":
-                domains = [permutation.domain for permutation in fuzzer.fuzz(domain, tld_dictionary, word_dictionary)]
+                domains = [permutation.domain for permutation in fuzzer.fuzz(domain_dto, tld_dictionary, word_dictionary, unicode)]
                 f.write("\n".join(domains))
             elif format == "csv":
                 writer = csv.DictWriter(f, fieldnames=["fuzzer", "domain"])
-                for permutation in fuzzer.fuzz(domain, tld_dictionary, word_dictionary):
+                for permutation in fuzzer.fuzz(domain_dto, tld_dictionary, word_dictionary, unicode):
                     writer.writerow(permutation)
+            else:
+                console.print(f"[bold red]Unknown format: {output}. Supported: json, plain, csv[/bold red]")
+                return
+            console.print(f"[bold green]File saved at {file_path}[/bold green]")
 
 @cli.command()
 @click.option(
@@ -147,11 +154,14 @@ def fuzzing(tld_dictionary: list[str], word_dictionary: list[str], filename: str
 )
 @click.option('-o', '--output', type=click.Path(dir_okay=True, writable=True), help='File to write results')
 @click.argument('domain', callback=utility.validate_regex(VALID_FQDN_REGEX, "not valid domain"))
-@typechecked
+@catch_errors
 def sniff(tld_dictionary: list[str], word_dictionary: list[str], nameservers: list[str], max_workers: int, output: str | None, domain: str):
     """Using a set of DNS servers and a target domain, return all potential fuzzed subdomains or domain variations that can be resolved"""
+    
+    domain_dto = DomainDTO(name=domain)
+    
     with console.status("[bold green]Sniffing potential similar domains[/bold green]"):
-        results = sniffer.search_dns(domain, tld_dictionary=tld_dictionary, word_dictionary=word_dictionary, nameservers=nameservers, max_workers=max_workers)
+        results = sniffer.search_dns(domain_dto, tld_dictionary=tld_dictionary, word_dictionary=word_dictionary, nameservers=nameservers, max_workers=max_workers)
         if output:
             with open(output, "w") as f:
                 json.dump(results, f, indent=4)
