@@ -12,14 +12,14 @@ class Domain(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False, unique=True)
-    suspicious_domains = relationship("SuspiciousDomain", back_populates='original_domain', cascade='all, delete-orphan')
+    suspicious_domains = relationship("SuspiciousDomain", backref='original_domain', cascade='all, delete-orphan, delete', passive_deletes=True)
 
 
 suspicious_domain_entity = Table(
     'suspicious_domain_entity',
     Base.metadata,
-    Column('suspicious_domain_id', ForeignKey('suspicious_domain.id'), primary_key=True),
-    Column('entity_id', ForeignKey('entity.id'), primary_key=True)
+    Column('suspicious_domain_id', ForeignKey('suspicious_domain.id', ondelete='CASCADE'), primary_key=True),
+    Column('entity_id', ForeignKey('entity.id', ondelete='CASCADE'), primary_key=True)
 )
 
 
@@ -28,7 +28,7 @@ class SuspiciousDomain(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
-    original_domain_id = Column(Integer, ForeignKey('domain.id'), nullable=False)
+    original_domain_id = Column(Integer, ForeignKey('domain.id', ondelete='CASCADE'), nullable=False)
 
 
     whois_server = Column(String(100), nullable=False)
@@ -37,11 +37,10 @@ class SuspiciousDomain(Base):
     expiration_date = Column(DateTime, nullable=True)
     url = Column(String(100), nullable=False)
 
+    status = Column(ARRAY(String(50)))
     nameservers = Column(ARRAY(String(50)))
     dnssec= Column(Boolean())
 
-    
-    original_domain = relationship("Domain", back_populates='suspicious_domains')
     entities = relationship("Entity", secondary=suspicious_domain_entity, back_populates="suspicious_domains")
 
 
@@ -52,18 +51,19 @@ class Entity(Base):
 
     type = Column(Enum(EntityType), nullable=False)
 
-    name = Column(String(100), nullable=False)
-    email = Column(String(100), nullable=False)
+    url = Column(String(100), nullable=False, default='')
+    name = Column(String(100), nullable=False, default='')
+    email = Column(String(100), nullable=True)
     po_box = Column(String(100), nullable=True)
     ext_address = Column(String(100), nullable=True)
     street_address = Column(String(100), nullable=True)
     locality = Column(String(100), nullable=True)
-    region = Column(String(2), nullable=True)
+    region = Column(String(100), nullable=True)
     postal_code = Column(String(10), nullable=True)
     country = Column(String(100), nullable=True)
 
     __table_args__ = (
-        UniqueConstraint('name', 'type', name='uix_entity_type'),
+        UniqueConstraint('name', 'type', 'url', name='uix_entity_type'),
     )
 
     suspicious_domains = relationship("SuspiciousDomain", secondary=suspicious_domain_entity, back_populates="entities")

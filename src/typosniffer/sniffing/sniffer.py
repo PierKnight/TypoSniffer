@@ -15,7 +15,7 @@ from typosniffer.utils.utility import strip_tld
 
 @dataclass(frozen=True)
 class SniffResult:
-    original_domain: str
+    original_domain: str = field(compare=True)
     domain: str = field(compare=True)
     dameraulevenshtein: int = field(compare=False)
     hamming: int = field(compare=False)
@@ -28,6 +28,13 @@ class SniffCriteria:
     hamming: int
     jaro: float
     levenshtein: int
+
+@dataclass(frozen=True)
+class SuspiciousDomainWhoIs:
+    name: str
+    original_domain: str
+    data: dict
+    
 
 DEFAULT_CRITERIA = SniffCriteria(1, 1, 0.9, 1)
 
@@ -114,7 +121,7 @@ def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria = D
                     hamming = textdistance.hamming(original_domain, sniff_domain) if len(original_domain) == len(sniff_domain) else -1
 
                     sniff_result = SniffResult(
-                        original_domain=original_domain,
+                        original_domain=domain.name,
                         domain=line,
                         dameraulevenshtein=textdistance.damerau_levenshtein(original_domain, sniff_domain),
                         hamming=hamming,
