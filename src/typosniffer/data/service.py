@@ -63,16 +63,19 @@ def clear_domains():
         session.commit()
 
 def _get_domain(session: OrmSession, domain_name: str) -> Domain:
+    """Get a domain given its name"""
     return session.query(Domain).filter_by(name=domain_name).first()
 
 
 def _delete_entity_orphan(session: OrmSession):
+    """Delete all the entities without any suspicious domains"""
 
     orphans = session.query(Entity).filter(~Entity.suspicious_domains.any()).all()
     for orphan in orphans:
         session.delete(orphan)
 
 def _get_or_create_entity(session: OrmSession, entity_type: EntityType, entity_data: dict) -> Entity:
+    """create or get a domain entity based on a dictionary containing the relevant data"""
 
     name = entity_data.get("name", "")
     url = entity_data.get("url", "")
@@ -101,10 +104,11 @@ def _get_or_create_entity(session: OrmSession, entity_type: EntityType, entity_d
 
 def create_suspicious_domain(
     session: OrmSession,
-    original_domain_name: str,  # Only the name is known
+    original_domain_name: str, 
     suspicious_domain: SuspiciousDomain,
     entities: list[Entity] | None = None, 
 ) -> SuspiciousDomain:
+    """Create a new suspicious domain in the database"""
     
     # Get original domain
     original_domain = _get_domain(session, original_domain_name)
@@ -140,7 +144,6 @@ def add_suspicious_domain(sniff_results: set[SniffResult], whois_data: Dict):
     with Session() as session:
         for result in sniff_results:
             
-
             data = whois_data.get(result.domain)
 
             if data:
@@ -153,8 +156,7 @@ def add_suspicious_domain(sniff_results: set[SniffResult], whois_data: Dict):
                     
                     for entity in entities:
                         found_entities.append(_get_or_create_entity(session, entityType, entity))
-
-
+                        
                 create_suspicious_domain(
                     session=session,
                     original_domain_name=result.original_domain,
@@ -171,7 +173,6 @@ def add_suspicious_domain(sniff_results: set[SniffResult], whois_data: Dict):
                         expiration_date = data['expiration_date'],
                         status = data['status']
                     )
-
                 )
 
 
