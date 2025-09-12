@@ -32,6 +32,9 @@ def print_warning(*args):
 def print_error(*args):
     print_msg(MessageType.ERROR, *args)
 
+def status(msg, msg_type: MessageType = MessageType.INFO):
+    return console.status(format_msg(msg_type, msg))
+
 
 
 
