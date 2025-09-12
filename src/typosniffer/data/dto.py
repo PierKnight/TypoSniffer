@@ -1,4 +1,5 @@
 import enum
+from typing import Type
 from pydantic import BaseModel, ConfigDict, Field
 from dnstwist import VALID_FQDN_REGEX
 
@@ -16,3 +17,11 @@ class EntityType(enum.Enum):
     TECHNICAL = "TECHNICAL"
     ABUSE = "ABUSE"
     BILLING = "BILLING"
+
+
+def dto_to_orm(dto: BaseModel, orm_cls):
+    return orm_cls(**dto.model_dump())
+
+
+def orm_to_dto(orm, dto: Type[BaseModel]):
+    return dto.model_validate(orm)

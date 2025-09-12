@@ -2,8 +2,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from itertools import cycle
 from pathlib import Path
+from typing import Optional
 import dns
 from dns import exception
+from pydantic import BaseModel, ConfigDict, Field
 from typeguard import typechecked
 from typosniffer.data.dto import DomainDTO
 from typosniffer.fuzzing import fuzzer
@@ -18,20 +20,21 @@ from typosniffer.utils.utility import strip_tld
 
 
 
-@dataclass(frozen=True)
-class SniffCriteria:
-    damerau_levenshtein: int = field(compare=False)
-    hamming: int = field(compare=False)
-    jaro: float = field(compare=False)
-    jaro_winkler: float = field(compare=False)
-    levenshtein: int = field(compare=False)
-    tf_idf: float = field(compare=False)
+class SniffCriteria(BaseModel):
 
-@dataclass(frozen=True)
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+
+    damerau_levenshtein: Optional[int] = Field(min=1)
+    hamming: Optional[int] = Field(min=1)
+    jaro: Optional[float] = Field(min=0, max=1)
+    jaro_winkler: Optional[float] = Field(min=0, max=1)
+    levenshtein: Optional[int] = Field(min=1)
+    tf_idf: Optional[float] = Field(min=0, max=1)
+
 class SniffResult(SniffCriteria):
-    original_domain: str = field(compare=True)
-    domain: str = field(compare=True)
-    suspicious: bool = field(compare=True)
+    original_domain: str
+    domain: str
+    suspicious: bool
 
 @dataclass(frozen=True)
 class SuspiciousDomainWhoIs:
