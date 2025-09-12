@@ -6,11 +6,10 @@ from typing import Optional
 import dns
 from dns import exception
 from pydantic import BaseModel, ConfigDict, Field
-from typeguard import typechecked
 from typosniffer.data.dto import DomainDTO
 from typosniffer.fuzzing import fuzzer
 from typosniffer.sniffing import tf_idf
-from typosniffer.utils.console import console
+from typosniffer.utils import console
 from dns import resolver
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 import textdistance
@@ -90,7 +89,6 @@ def resolve_domain(domain, nameserver):
     answer = resolver.resolve(domain, "A")
     return [rdata.to_text() for rdata in answer]
 
-@typechecked
 def search_dns(domain: DomainDTO, tld_dictionary: list[str], word_dictionary: list[str], nameservers: list[str], max_workers=30):
 
     nameserver_cycle = cycle(nameservers)
@@ -109,7 +107,7 @@ def search_dns(domain: DomainDTO, tld_dictionary: list[str], word_dictionary: li
             BarColumn(),
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
             TextColumn("[green]{task.completed}/{task.total} domains resolved"),
-            console=console
+            console=console.console
         ) as progress:
             task = progress.add_task("[green]Resolving domains...", total=total_tasks)
 
@@ -130,14 +128,11 @@ def search_dns(domain: DomainDTO, tld_dictionary: list[str], word_dictionary: li
                 except resolver.NXDOMAIN:
                     pass
                 except exception.Timeout as e:
-                    console.print(f"[bold red]Timeout with dns query: {domain}, {e}[/bold red]")
+                    console.print_error(f"[bold red]Timeout with dns query: {domain}, {e}[/bold red]")
                 except exception.DNSException as e:
-                    console.print(f"[bold red]Something went wrong with dns query: {domain}, {e}[/bold red]")
+                    console.print_error(f"[bold red]Something went wrong with dns query: {domain}, {e}[/bold red]")
                 finally:
                     progress.update(task, advance=1)
-
-    console.print("[bold green]DNS resolution completed![/bold green]")
-    console.print(results)
                 
     return results
 
@@ -149,14 +144,14 @@ def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria) ->
     with open(file, "r", encoding="utf-8") as f:
         for line in f:
                 
-                domain_to_scan = line.strip()
+            domain_to_scan = line.strip()
 
-                for domain in domains:
+            for domain in domains:
 
-                    sniff_result = compare_domain(domain.name, domain_to_scan, criteria)
+                sniff_result = compare_domain(domain.name, domain_to_scan, criteria)
 
-                    if sniff_result.suspicious:
-                        results.add(sniff_result)
+                if sniff_result.suspicious:
+                    results.add(sniff_result)
     return results
 
     
