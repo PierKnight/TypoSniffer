@@ -1,8 +1,8 @@
 
 from sqlalchemy.exc import IntegrityError
 from typosniffer.data.database import DB
-from typosniffer.data.dto import DomainDTO
-from typosniffer.data.service import dto_to_orm, orm_to_dto
+from typosniffer.data.dto import DomainDTO, dto_to_orm
+from typosniffer.data.dto import orm_to_dto
 from typosniffer.data.tables import Domain
 from typosniffer.service.suspicious_domain import delete_entity_orphan
 from typosniffer.utils.exceptions import ServiceFailure
