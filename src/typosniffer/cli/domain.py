@@ -16,22 +16,27 @@ def add(names):
     """Add a new domain"""
     domains = [DomainDTO(name = name) for name in names]
 
-    service.add_domains(domains)
+    with console.status("[bold green]Adding domains[/bold green]"):
+        service.add_domains(domains)
 
 @domain.command()
 @click.argument('names', nargs=-1)
 def remove(names):
     """Remove an existing domain"""
     domains = [DomainDTO(name = name) for name in names]
-    removed = service.remove_domains(domains)
-    console.print(f"Removed {removed} domains")
+
+    with console.status("[bold green]Removing domains[/bold green]"):
+        removed = service.remove_domains(domains)
+        console.print(f"Removed {removed} domains")
 
 @domain.command()
 def list():
     """Get list of registered domains"""
-    domains = service.get_domains()
-    for domain in domains:
-        console.print(f"{domain.name}")
+
+    with console.status("[bold green]Retrieving domain list[/bold green]"):
+        domains = service.get_domains()
+        for domain in domains:
+            console.print(f"{domain.name}")
 
 @domain.command()
 def clear():
