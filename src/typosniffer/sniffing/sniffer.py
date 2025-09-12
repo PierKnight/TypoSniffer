@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from itertools import cycle
 from pathlib import Path
 from typing import Optional
@@ -22,14 +22,14 @@ from typosniffer.utils.utility import strip_tld
 
 class SniffCriteria(BaseModel):
 
-    model_config = ConfigDict(from_attributes=True, frozen=True)
+    model_config = ConfigDict(frozen=True)
 
-    damerau_levenshtein: Optional[int] = Field(min=1)
-    hamming: Optional[int] = Field(min=1)
-    jaro: Optional[float] = Field(min=0, max=1)
-    jaro_winkler: Optional[float] = Field(min=0, max=1)
-    levenshtein: Optional[int] = Field(min=1)
-    tf_idf: Optional[float] = Field(min=0, max=1)
+    damerau_levenshtein: Optional[int] = Field(None, ge=1)
+    hamming: Optional[int] = Field(None, ge=1)
+    jaro: Optional[float] = Field(None, ge=0, le=1)
+    jaro_winkler: Optional[float] = Field(None, ge=0, le=1)
+    levenshtein: Optional[int] = Field(None, ge=1)
+    tf_idf: Optional[float] = Field(None, ge=0, le=1)
 
 class SniffResult(SniffCriteria):
     original_domain: str
@@ -43,14 +43,6 @@ class SuspiciousDomainWhoIs:
     data: dict
     
 
-DEFAULT_CRITERIA = SniffCriteria(
-    damerau_levenshtein=1,
-    hamming=-1,
-    jaro=-1,
-    jaro_winkler=0.9,
-    levenshtein=0,
-    tf_idf=-1
-)
 
 SNIFF_ALGORITHMS = {
     'damerau_levenshtein': {'alg': textdistance.damerau_levenshtein, 'check': 'lower'},
@@ -75,7 +67,7 @@ def compare_domain(original_domain: str, domain: str, criteria: SniffCriteria) -
         criteria_value = getattr(criteria, name)
         value = algorithm_info['alg'](original_sub_domain, sub_domain)
 
-        if criteria_value != -1:
+        if criteria_value:
             suspicious = value > criteria_value if algorithm_info['check'] == 'upper' else value < criteria_value
             if suspicious:
                 sus = True
@@ -149,7 +141,7 @@ def search_dns(domain: DomainDTO, tld_dictionary: list[str], word_dictionary: li
                 
     return results
 
-def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria = DEFAULT_CRITERIA) -> set[SniffResult]:
+def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria) -> set[SniffResult]:
     """
     Given a file, it will read every domain in them and perform checks for similarities with a domain/domains
     """
