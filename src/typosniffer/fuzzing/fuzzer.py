@@ -26,7 +26,7 @@ def fuzz(domain: DomainDTO, tld_dictionary: list[str], word_dictionary: list[str
 
 @typechecked
 def read_tld_dictionary() -> list[str]:
-    return utility.read_lines(utility.get_dictionary("tld.txt"))
+    return utility.read_lines(utility.get_resource("tld.txt"))
 
 
 

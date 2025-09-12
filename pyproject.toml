@@ -27,7 +27,7 @@ dependencies = [
 packages = [{include = "typosniffer", from = "src"}]
 
 [project.scripts]
-typosniffer = "typosniffer.cli:cli"
+typosniffer = "typosniffer.cli.cli:main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

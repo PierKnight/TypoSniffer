@@ -12,7 +12,6 @@ def validate_regex(pattern: re.Pattern, message: str = None):
     def callback(ctx, param, value):
 
         values_to_check = [value] if isinstance(value, str) else value
-        print(values_to_check)
         for val in values_to_check:
             if not re.match(pattern, val):
                 raise click.BadParameter(message if message else f"'{val}' does not match pattern '{pattern}'" )
@@ -31,8 +30,8 @@ def read_lines(file: Path) -> list[str]:
     return tld_dictionary
 
 @typechecked
-def get_dictionary(file: str) -> Path:
-    return resources.files("typosniffer").joinpath("dictionary").joinpath(file)
+def get_resource(file: str) -> Path:
+    return resources.files("typosniffer").joinpath("resources").joinpath(file)
 
 @typechecked
 def punicode_to_unicode(s: str) -> str:

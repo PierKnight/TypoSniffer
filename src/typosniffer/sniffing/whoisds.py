@@ -69,7 +69,7 @@ def clear_old_domains(max_days: int = 30) -> int:
             file_date = datetime.strptime(file_date_str, "%Y-%m-%d")
             
             # Check if file is one month or older
-            if today - file_date >= timedelta(days=max_days):
+            if today - file_date > timedelta(days=max_days):
                 file_path = os.path.join(WHOISDS_FOLDER, filename)
                 os.remove(file_path)
                 total_cleaned += 1
@@ -147,11 +147,11 @@ def sniff_whoisds(domains: list[DomainDTO], whoisds_files: list[WhoIsDsFile], cr
             task = progress.add_task("[green]Sniffing Domain Files...", total=total_files)
             
             for future in as_completed(future_to_file):
-                date = future_to_file[future]
+                file: WhoIsDsFile = future_to_file[future]
                 try:
                     results.update(future.result())
                 except Exception as e:
-                    console.print(f"[bold red]Failed to sniff domain file: {date}, {file}[/bold red]") 
+                    console.print(f"[bold red]Failed to sniff domain file: {file.date}, {e}[/bold red]") 
                 finally:
                     progress.update(task, advance=1)
 
