@@ -1,11 +1,9 @@
-import csv
-import json
 from pathlib import Path
 import click
 from typosniffer.data.dto import DomainDTO
 from typosniffer.fuzzing import fuzzer
 from typosniffer.utils import utility
-from typosniffer.utils.console import console
+from typosniffer.utils import console
 
 
 @click.command()
@@ -35,24 +33,18 @@ def fuzzing(unicode: bool, tld_dictionary: list[str], word_dictionary: list[str]
 
     with console.status("[bold green]Running Domain Fuzzing..[/bold green]"):
         file_path = Path(filename).resolve()
-        with open(file_path, "w", encoding="utf-8") as f:
 
-            if format == 'json':
-                output = dict()
-                for permutation in fuzzer.fuzz(domain_dto, tld_dictionary, word_dictionary, unicode):
-                    if permutation.fuzzer in output:
-                        output[permutation.fuzzer].append(permutation.domain)
-                    else:
-                        output[permutation.fuzzer] = [permutation.domain]
-                json.dump(output, f, indent=4)
-            elif format == "plain":
-                domains = [permutation.domain for permutation in fuzzer.fuzz(domain_dto, tld_dictionary, word_dictionary, unicode)]
-                f.write("\n".join(domains))
-            elif format == "csv":
-                writer = csv.DictWriter(f, fieldnames=["fuzzer", "domain"])
-                for permutation in fuzzer.fuzz(domain_dto, tld_dictionary, word_dictionary, unicode):
-                    writer.writerow(permutation)
-            else:
-                console.print(f"[bold red]Unknown format: {output}. Supported: json, plain, csv[/bold red]")
-                return
-            console.print(f"[bold green]File saved at {file_path}[/bold green]")
+        fuzz_generator = fuzzer.fuzz(domain_dto, tld_dictionary, word_dictionary, unicode)
+
+        if format == 'json':
+
+            output = {}
+            for permutation in fuzz_generator:
+                output.setdefault(permutation.fuzzer, []).append(permutation.domain)
+
+            utility.save_as_json(output, file_path)
+        elif format == 'csv':
+            utility.save_as_csv(fuzz_generator, file_path)
+        else:
+            console.print_error(f"Unknown format: {output}. Supported: json, plain, csv")
+            return
