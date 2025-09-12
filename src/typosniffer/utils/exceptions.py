@@ -1,0 +1,2 @@
+class ServiceFailure(Exception):
+    pass
