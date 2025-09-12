@@ -1,10 +1,10 @@
 from typing import Dict, Type
 from pydantic import BaseModel
 from typosniffer.data.dto import DomainDTO
-from typosniffer.data.database import Session
+from typosniffer.data.database import DB
 from typosniffer.data.tables import *
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session as OrmSession
+from sqlalchemy.orm import Session
 from typosniffer.sniffing.sniffer import SniffResult
 from typosniffer.utils.console import console
 
@@ -20,7 +20,7 @@ def orm_to_dto(orm, dto: Type[BaseModel]):
 def get_domains() -> list[DomainDTO]:
     """Retrieve all domains that need to be scanned"""
 
-    with Session() as session:
+    with () as session:
 
         domains = session.query(Domain).all()
 
@@ -32,7 +32,7 @@ def get_domains() -> list[DomainDTO]:
 def add_domains(domains: list[DomainDTO]):
     """Add list of validated domains to DB"""
 
-    with Session() as session:
+    with DB.get_session() as session:
         for domain in domains:
             orm_domain = dto_to_orm(domain, Domain)
             session.add(orm_domain)
@@ -48,7 +48,7 @@ def remove_domains(domains: list[DomainDTO]):
 
     domain_names = [domain.name for domain in domains]
 
-    with Session() as session:
+    with DB.get_session() as session:
         
         deleted_count = session.query(Domain).filter(Domain.name.in_(domain_names)).delete()
         _delete_entity_orphan(session)
@@ -57,24 +57,24 @@ def remove_domains(domains: list[DomainDTO]):
     return deleted_count
 
 def clear_domains():
-    with Session() as session:
+    with DB.get_session() as session:
         session.query(Domain).delete()
         _delete_entity_orphan(session)
         session.commit()
 
-def _get_domain(session: OrmSession, domain_name: str) -> Domain:
+def _get_domain(session: Session, domain_name: str) -> Domain:
     """Get a domain given its name"""
     return session.query(Domain).filter_by(name=domain_name).first()
 
 
-def _delete_entity_orphan(session: OrmSession):
+def _delete_entity_orphan(session: Session):
     """Delete all the entities without any suspicious domains"""
 
     orphans = session.query(Entity).filter(~Entity.suspicious_domains.any()).all()
     for orphan in orphans:
         session.delete(orphan)
 
-def _get_or_create_entity(session: OrmSession, entity_type: EntityType, entity_data: dict) -> Entity:
+def _get_or_create_entity(session: Session, entity_type: EntityType, entity_data: dict) -> Entity:
     """create or get a domain entity based on a dictionary containing the relevant data"""
 
     name = entity_data.get("name", "")
@@ -103,7 +103,7 @@ def _get_or_create_entity(session: OrmSession, entity_type: EntityType, entity_d
 
 
 def create_suspicious_domain(
-    session: OrmSession,
+    session: Session,
     original_domain_name: str, 
     suspicious_domain: SuspiciousDomain,
     entities: list[Entity] | None = None, 
@@ -141,7 +141,7 @@ def create_suspicious_domain(
 def add_suspicious_domain(sniff_results: set[SniffResult], whois_data: Dict):
     """Add Suspicious domain given sniff result and domain data"""
 
-    with Session() as session:
+    with DB.get_session() as session:
         for result in sniff_results:
             
             data = whois_data.get(result.domain)

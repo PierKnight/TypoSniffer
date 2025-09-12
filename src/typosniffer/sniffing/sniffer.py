@@ -7,27 +7,31 @@ from dns import exception
 from typeguard import typechecked
 from typosniffer.data.dto import DomainDTO
 from typosniffer.fuzzing import fuzzer
+from typosniffer.sniffing import tf_idf
 from typosniffer.utils.console import console
 from dns import resolver
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 import textdistance
 from typosniffer.utils.utility import strip_tld
 
-@dataclass(frozen=True)
-class SniffResult:
-    original_domain: str = field(compare=True)
-    domain: str = field(compare=True)
-    dameraulevenshtein: int = field(compare=False)
-    hamming: int = field(compare=False)
-    jaro: float = field(compare=False)
-    levenshtein: int = field(compare=False)
+
+
+
 
 @dataclass(frozen=True)
 class SniffCriteria:
-    dameraulevenshtein: int
-    hamming: int
-    jaro: float
-    levenshtein: int
+    damerau_levenshtein: int = field(compare=False)
+    hamming: int = field(compare=False)
+    jaro: float = field(compare=False)
+    jaro_winkler: float = field(compare=False)
+    levenshtein: int = field(compare=False)
+    tf_idf: float = field(compare=False)
+
+@dataclass(frozen=True)
+class SniffResult(SniffCriteria):
+    original_domain: str = field(compare=True)
+    domain: str = field(compare=True)
+    suspicious: bool = field(compare=True)
 
 @dataclass(frozen=True)
 class SuspiciousDomainWhoIs:
@@ -36,14 +40,53 @@ class SuspiciousDomainWhoIs:
     data: dict
     
 
-DEFAULT_CRITERIA = SniffCriteria(1, 1, 0.9, 1)
+DEFAULT_CRITERIA = SniffCriteria(
+    damerau_levenshtein=1,
+    hamming=-1,
+    jaro=-1,
+    jaro_winkler=0.9,
+    levenshtein=0,
+    tf_idf=-1
+)
+
+SNIFF_ALGORITHMS = {
+    'damerau_levenshtein': {'alg': textdistance.damerau_levenshtein, 'check': 'lower'},
+    'levenshtein': {'alg': textdistance.levenshtein, 'check': 'lower'},
+    'hamming': {'alg': textdistance.hamming, 'check': 'lower'},
+    'jaro': {'alg': textdistance.jaro, 'check': 'upper'},
+    'jaro_winkler': {'alg': textdistance.jaro_winkler, 'check': 'upper'},
+    'tf_idf': {'alg': tf_idf.cosine_similarity_string, 'check': 'upper'}
+}
+
+
+def compare_domain(original_domain: str, domain: str, criteria: SniffCriteria) -> SniffResult:
+
+
+    _, original_sub_domain = strip_tld(original_domain)
+    _, sub_domain = strip_tld(domain)
+
+    sniff_result = {}
+    sus = False
+
+    for name, algorithm_info in SNIFF_ALGORITHMS.items():
+        criteria_value = getattr(criteria, name)
+        value = algorithm_info['alg'](original_sub_domain, sub_domain)
+
+        if criteria_value != -1:
+            suspicious = value > criteria_value if algorithm_info['check'] == 'upper' else value < criteria_value
+            if suspicious:
+                sus = True
+        sniff_result[name] = value
+
+    
+    return SniffResult(domain=domain, original_domain=original_domain, suspicious=sus, **sniff_result)
+
 
 
 
 
 def resolve_domain(domain, nameserver):
     """Resolve using a specific DNS server."""
-
     #print(f"MAKE REQUEST {domain}")
     resolver = dns.resolver.Resolver()
     resolver.nameservers = [nameserver]
@@ -111,30 +154,13 @@ def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria = D
     with open(file, "r", encoding="utf-8") as f:
         for line in f:
                 
-                line = line.strip()
+                domain_to_scan = line.strip()
 
                 for domain in domains:
 
-                    _, original_domain = strip_tld(domain.name)
-                    _, sniff_domain = strip_tld(line)
+                    sniff_result = compare_domain(domain.name, domain_to_scan, criteria)
 
-                    hamming = textdistance.hamming(original_domain, sniff_domain) if len(original_domain) == len(sniff_domain) else -1
-
-                    sniff_result = SniffResult(
-                        original_domain=domain.name,
-                        domain=line,
-                        dameraulevenshtein=textdistance.damerau_levenshtein(original_domain, sniff_domain),
-                        hamming=hamming,
-                        jaro=textdistance.jaro_winkler(original_domain, sniff_domain),
-                        levenshtein=textdistance.levenshtein(original_domain, sniff_domain)
-                    )
-                
-                    is_sus = sniff_result.hamming <= criteria.hamming and sniff_result.hamming >= 0 or \
-                            sniff_result.dameraulevenshtein <= criteria.dameraulevenshtein or \
-                            sniff_result.jaro >= criteria.jaro or \
-                            sniff_result.levenshtein <= criteria.levenshtein
-
-                    if is_sus:
+                    if sniff_result.suspicious:
                         results.add(sniff_result)
     return results
 

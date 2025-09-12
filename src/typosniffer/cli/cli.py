@@ -1,0 +1,79 @@
+from http.client import BadStatusLine
+import click
+from rich.table import Table
+from pydantic import ValidationError
+from typosniffer.utils.console import console
+from typosniffer.config import config
+from typeguard import typechecked
+from typosniffer.cli.domain import domain
+from typosniffer.cli.scan import scan, clear
+from typosniffer.cli.sniff import sniff
+from typosniffer.cli.fuzzing import fuzzing
+
+
+def print_banner():
+    banner = \
+"""
+████████╗██╗   ██╗██████╗  ██████╗                   
+╚══██╔══╝╚██╗ ██╔╝██╔══██╗██╔═══██╗                  
+   ██║    ╚████╔╝ ██████╔╝██║   ██║                  
+   ██║     ╚██╔╝  ██╔═══╝ ██║   ██║                  
+   ██║      ██║   ██║     ╚██████╔╝                  
+   ╚═╝      ╚═╝   ╚═╝      ╚═════╝                   
+                                                     
+███████╗███╗   ██╗██╗███████╗███████╗███████╗██████╗ 
+██╔════╝████╗  ██║██║██╔════╝██╔════╝██╔════╝██╔══██╗
+███████╗██╔██╗ ██║██║█████╗  █████╗  █████╗  ██████╔╝
+╚════██║██║╚██╗██║██║██╔══╝  ██╔══╝  ██╔══╝  ██╔══██╗
+███████║██║ ╚████║██║██║     ██║     ███████╗██║  ██║
+╚══════╝╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝     ╚══════╝╚═╝  ╚═╝
+
+By Pierluigi Altimari                                                     
+
+"""
+    console.print(f"[bold green]{banner}[/bold green]")
+
+
+@click.group()
+@click.option("-v", "--verbose", is_flag=True)
+@typechecked
+def cli(verbose: bool):
+    print_banner()
+    config.load()
+
+
+@click.command
+def test():
+    raise BadStatusLine("rerwre")
+
+def main():
+    try:
+        cli()
+    except ValidationError as e:
+        table = Table(title="Validation Errors")
+        table.add_column("Field", style="cyan")
+        table.add_column("Error", style="red")
+        table.add_column("Value", style="yellow")
+
+        for err in e.errors():
+            field = ".".join(map(str, err["loc"]))
+            table.add_row(field, err["msg"], str(err.get("input")))
+
+        console.print(table)
+    except Exception:
+        console.print_exception()
+        return None
+
+
+cli.add_command(domain)
+cli.add_command(sniff)
+cli.add_command(clear)
+cli.add_command(scan)
+cli.add_command(fuzzing)
+cli.add_command(test)
+
+
+
+    
+
+
