@@ -20,7 +20,7 @@ def orm_to_dto(orm, dto: Type[BaseModel]):
 def get_domains() -> list[DomainDTO]:
     """Retrieve all domains that need to be scanned"""
 
-    with () as session:
+    with DB.get_session() as session:
 
         domains = session.query(Domain).all()
 
