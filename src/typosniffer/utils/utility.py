@@ -1,23 +1,8 @@
 from importlib import resources
 from pathlib import Path
-import re
 from typing import List
-import click
 from typeguard import typechecked
 import tldextract
-
-@typechecked
-def validate_regex(pattern: re.Pattern, message: str = None):
-    """Return a callback function that validates the argument against the given pattern."""
-    def callback(ctx, param, value):
-
-        values_to_check = [value] if isinstance(value, str) else value
-        for val in values_to_check:
-            if not re.match(pattern, val):
-                raise click.BadParameter(message if message else f"'{val}' does not match pattern '{pattern}'" )
-        return value
-    return callback
-
 
 @typechecked
 def read_lines(file: Path) -> list[str]:
