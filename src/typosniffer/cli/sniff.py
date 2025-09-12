@@ -1,9 +1,8 @@
-import json
 import click
 from typosniffer.data.dto import DomainDTO
 from typosniffer.sniffing import sniffer
 from typosniffer.utils import utility
-from typosniffer.utils.console import console
+from typosniffer.utils import console
 
 
 @click.command()
@@ -43,7 +42,10 @@ def sniff(tld_dictionary: list[str], word_dictionary: list[str], nameservers: li
     
     with console.status("[bold green]Sniffing potential similar domains[/bold green]"):
         results = sniffer.search_dns(domain_dto, tld_dictionary=tld_dictionary, word_dictionary=word_dictionary, nameservers=nameservers, max_workers=max_workers)
-        if output:
-            with open(output, "w") as f:
-                json.dump(results, f, indent=4)
+    
+    console.print_info("[bold green]DNS resolution completed![/bold green]")
+    console.print_info(results)
+    
+    if output:
+        utility.save_as_json(results, output)
 

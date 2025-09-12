@@ -1,7 +1,7 @@
 import click
 from rich.table import Table
 from pydantic import ValidationError
-from typosniffer.utils.console import console
+from typosniffer.utils import console
 from typosniffer.config import config
 from typeguard import typechecked
 from typosniffer.cli.domain import domain
@@ -30,7 +30,7 @@ def print_banner():
 By Pierluigi Altimari                                                     
 
 """
-    console.print(f"[bold green]{banner}[/bold green]")
+    console.print_info(f"[bold green]{banner}[/bold green]")
 
 
 @click.group()
@@ -53,9 +53,9 @@ def main():
             field = ".".join(map(str, err["loc"]))
             table.add_row(field, err["msg"], str(err.get("input")))
 
-        console.print(table)
+        console.print_info(table)
     except Exception:
-        console.print_exception()
+        console.console.print_exception()
         return None
 
 

@@ -20,8 +20,13 @@ def format_msg(msg_type: MessageType, msg: str):
 
 
 def print_msg(msg_type: MessageType, *args):
-    msg = " ".join(str(a) for a in args)
-    console.print(format_msg(msg_type, msg))
+    
+    if type(*args) is str:
+        msg = " ".join(str(a) for a in args)
+        console.print(format_msg(msg_type, msg))
+    else:
+        console.print(*args)
+    
 
 def print_info(*args):
     print_msg(MessageType.INFO, *args)
