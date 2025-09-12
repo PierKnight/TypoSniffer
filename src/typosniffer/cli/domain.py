@@ -2,7 +2,7 @@
 import click
 from rich.prompt import Confirm
 from typosniffer.data.dto import DomainDTO
-from typosniffer.utils.console import *
+from typosniffer.utils import console
 from typosniffer.utils.exceptions import ServiceFailure
 from typosniffer.service.domain import *
 
@@ -20,9 +20,9 @@ def add(names):
     with console.status("[bold green]Adding domains[/bold green]"):
         try:
             add_domains(domains)
-            print_info(f"Successfully added {len(domains)} domains")
+            console.print_info(f"Successfully added {len(domains)} domains")
         except ServiceFailure as e:
-            print_msg(MessageType.ERROR, e)
+            console.print_error(e)
 
 @domain.command()
 @click.argument('names', nargs=-1)
@@ -32,7 +32,7 @@ def remove(names):
 
     with console.status("[bold green]Removing domains[/bold green]"):
         removed = remove_domains(domains)
-        print_info(f"Removed {removed} domains")
+        console.print_info(f"Removed {removed} domains")
 
 @domain.command()
 def list():
@@ -41,7 +41,7 @@ def list():
     with console.status("[bold green]Retrieving domain list[/bold green]"):
         domains = get_domains()
         for domain in domains:
-            print_info(f"{domain.name}")
+            console.print_info(f"{domain.name}")
 
 @domain.command()
 def clear():
@@ -49,6 +49,6 @@ def clear():
 
     if Confirm.ask("[bold red]Are you sure you want to delete ALL registered domains?[/bold red]"):
         clear_domains()
-        print_info("✅ All domains deleted successfully.")
+        console.print_info("✅ All domains deleted successfully.")
     else:
-        print_warning("⚠️  Operation cancelled.")
+        console.print_warning("⚠️  Operation cancelled.")

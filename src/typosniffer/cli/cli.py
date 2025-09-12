@@ -1,4 +1,3 @@
-from http.client import BadStatusLine
 import click
 from rich.table import Table
 from pydantic import ValidationError
@@ -41,11 +40,6 @@ def cli(verbose: bool):
     print_banner()
     config.load()
 
-
-@click.command
-def test():
-    raise BadStatusLine("rerwre")
-
 def main():
     try:
         cli()
@@ -70,7 +64,6 @@ cli.add_command(sniff)
 cli.add_command(clear)
 cli.add_command(scan)
 cli.add_command(fuzzing)
-cli.add_command(test)
 
 
 
