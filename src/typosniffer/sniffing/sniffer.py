@@ -30,10 +30,17 @@ class SniffCriteria(BaseModel):
     levenshtein: Optional[int] = Field(None, ge=1)
     tf_idf: Optional[float] = Field(None, ge=0, le=1)
 
-class SniffResult(SniffCriteria):
+@dataclass(frozen=True)
+class SniffResult:
     original_domain: str
     domain: str
     suspicious: bool
+    damerau_levenshtein: int
+    hamming: int
+    jaro: float
+    jaro_winkler: float
+    levenshtein: int
+    tf_idf: float
 
 @dataclass(frozen=True)
 class SuspiciousDomainWhoIs:
@@ -72,7 +79,6 @@ def compare_domain(original_domain: str, domain: str, criteria: SniffCriteria) -
                 sus = True
         sniff_result[name] = value
 
-    
     return SniffResult(domain=domain, original_domain=original_domain, suspicious=sus, **sniff_result)
 
 
