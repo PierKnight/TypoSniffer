@@ -60,6 +60,9 @@ def clear_old_domains(max_days: int = 30) -> int:
     Returns:
         int: Number of files deleted.
     """
+
+    os.makedirs(WHOISDS_FOLDER, exist_ok=True)
+
     today = datetime.today()
     total_cleaned = 0
     for filename in os.listdir(WHOISDS_FOLDER):
