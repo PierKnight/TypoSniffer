@@ -1,0 +1,5 @@
+email: #optional email configuration to send notification
+
+monitor:
+  screenshot_dir: ~/.typosniffer/screenshots
+  page_load_timeout: 3

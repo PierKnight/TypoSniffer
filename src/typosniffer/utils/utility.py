@@ -97,3 +97,12 @@ def save_as_csv(obj: Any, filepath: Path, print: bool = True) -> None:
         console.print_info(f"File saved at {filepath}")
 
 
+def expand_and_create_dir(path_str: str) -> Path:
+    """
+    Expand ~ and create the directory if it does not exist.
+    """
+    path = Path(path_str).expanduser()
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+

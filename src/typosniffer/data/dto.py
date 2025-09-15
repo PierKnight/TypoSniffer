@@ -18,6 +18,13 @@ class EntityType(enum.Enum):
     ABUSE = "ABUSE"
     BILLING = "BILLING"
 
+class SuspiciousDomain(BaseModel):
+    model_config = ConfigDict(from_attributes=True, frozen=True)
+
+    name: str = Field(pattern=VALID_FQDN_REGEX)
+    original_domain: str = Field(pattern=VALID_FQDN_REGEX)
+
+
 
 def dto_to_orm(dto: BaseModel, orm_cls):
     return orm_cls(**dto.model_dump())

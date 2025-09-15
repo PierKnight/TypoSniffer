@@ -8,6 +8,7 @@ from typosniffer.cli.domain import domain
 from typosniffer.cli.scan import scan, clear
 from typosniffer.cli.sniff import sniff
 from typosniffer.cli.fuzzing import fuzzing
+from typosniffer.cli.sus_domain import sus_domain
 
 
 def print_banner():
@@ -38,11 +39,12 @@ By Pierluigi Altimari
 @typechecked
 def cli(verbose: bool):
     print_banner()
-    config.load()
 
 def main():
     try:
+        config.load()
         cli()
+
     except ValidationError as e:
         table = Table(title="Validation Errors")
         table.add_column("Field", style="cyan")
@@ -59,6 +61,8 @@ def main():
         return None
 
 
+
+cli.add_command(sus_domain)
 cli.add_command(domain)
 cli.add_command(sniff)
 cli.add_command(clear)

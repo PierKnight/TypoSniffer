@@ -2,7 +2,7 @@ from sqlite3 import IntegrityError
 from sqlalchemy.orm import Session
 
 from typosniffer.data.database import DB
-from typosniffer.data.dto import EntityType
+from typosniffer.data.dto import DomainDTO, EntityType
 from typosniffer.data.tables import Domain, Entity, SuspiciousDomain
 from typosniffer.sniffing.sniffer import SniffResult
 from typosniffer.utils.exceptions import ServiceFailure
@@ -111,6 +111,14 @@ def add_suspicious_domain(sniff_results: set[SniffResult], whois_data: dict):
                         status = data['status']
                     )
                 )
+
+def get_suspicious_domains() -> list[DomainDTO]:
+
+    with DB.get_session() as session:
+        
+        domains = session.query(SuspiciousDomain).all()
+
+        return [DomainDTO(name = domain.name) for domain in domains]
 
 
 
