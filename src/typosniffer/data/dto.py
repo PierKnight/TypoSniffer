@@ -1,11 +1,12 @@
 import enum
-from typing import Type
+from typing import Optional, Type
 from pydantic import BaseModel, ConfigDict, Field
 from dnstwist import VALID_FQDN_REGEX
 
 class DomainDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
-
+    
+    id: Optional[int] = None
     name: str = Field(pattern=VALID_FQDN_REGEX)
 
 
@@ -18,7 +19,7 @@ class EntityType(enum.Enum):
     ABUSE = "ABUSE"
     BILLING = "BILLING"
 
-class SuspiciousDomain(BaseModel):
+class SuspiciousDomainDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
 
     name: str = Field(pattern=VALID_FQDN_REGEX)

@@ -25,6 +25,12 @@ class DB:
             cls._session_factory = scoped_session(sessionmaker(bind=cls._engine))
             Base.metadata.create_all(cls._engine)
         return cls._session_factory()
+    
+    @classmethod
+    def get_new_session(cls):
+        engine = create_engine(DATABASE_URL, echo=True)
+        factory = sessionmaker(bind=engine)
+        return engine, factory
 
 
 

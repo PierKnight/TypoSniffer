@@ -1,4 +1,3 @@
-from sqlite3 import IntegrityError
 from sqlalchemy.orm import Session
 
 from typosniffer.data.database import DB
@@ -30,10 +29,8 @@ def _get_or_create_entity(session: Session, entity_type: EntityType, entity_data
 
         entity = Entity(**filtered_data)
         session.add(entity)
-        try:
-            session.flush()
-        except IntegrityError:
-            session.rollback()
+
+        session.flush()
     return entity
 
 
@@ -69,7 +66,6 @@ def create_suspicious_domain(
         if entity not in suspicious.entities:
             suspicious.entities.append(entity)
 
-    session.commit()
     return suspicious
 
 
@@ -77,7 +73,7 @@ def create_suspicious_domain(
 def add_suspicious_domain(sniff_results: set[SniffResult], whois_data: dict):
     """Add Suspicious domain given sniff result and domain data"""
 
-    with DB.get_session() as session:
+    with DB.get_session() as session, session.begin():
         for result in sniff_results:
             
             data = whois_data.get(result.domain)
@@ -118,7 +114,7 @@ def get_suspicious_domains() -> list[DomainDTO]:
         
         domains = session.query(SuspiciousDomain).all()
 
-        return [DomainDTO(name = domain.name) for domain in domains]
+        return [DomainDTO(id = domain.id, name = domain.name) for domain in domains]
 
 
 
