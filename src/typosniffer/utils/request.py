@@ -1,3 +1,4 @@
+from typing import Tuple
 import requests
 from importlib.metadata import version
 from selenium import webdriver
@@ -75,19 +76,26 @@ def resolve_url(domain: str) -> str:
     # Fall back to HTTP
     return f"http://{domain}"
 
-def website_screenshot(url: str, timeout: int) -> bytes:
 
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.accept_insecure_certs = True
+class Browser:
+    
+	def __init__(self, url: str, timeout: int):
+        
+		self.url = url
 
-    for opt in WEBDRIVER_ARGUMENTS:
-        chrome_options.add_argument(opt)
-     
-    driver = webdriver.Chrome(options=chrome_options)
-    driver.execute_cdp_cmd('Network.setUserAgentOverride', {'userAgent':USER_AGENT})
-    driver.set_page_load_timeout(timeout)
-    try:
-        driver.get(url)
-        return driver.get_screenshot_as_png()
-    finally:
-    	driver.quit()
+		chrome_options = webdriver.ChromeOptions()
+		chrome_options.accept_insecure_certs = True
+
+		for opt in WEBDRIVER_ARGUMENTS:
+			chrome_options.add_argument(opt)
+		
+		self.driver = webdriver.Chrome(options=chrome_options)
+		self.driver.execute_cdp_cmd('Network.setUserAgentOverride', {'userAgent':USER_AGENT})
+		self.driver.set_page_load_timeout(timeout)
+          
+	def screenshot(self) -> Tuple[bytes, str]:
+		try:
+			self.driver.get(self.url)
+			return self.driver.get_screenshot_as_png(), self.driver.current_url
+		finally:
+			self.driver.quit()

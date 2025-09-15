@@ -42,11 +42,7 @@ def load():
     global cfg
     os.makedirs(FOLDER, exist_ok=True)
 
-    print("LOL")
-
-
     config_file = FOLDER / "config.yaml"
-
     
     if not config_file.exists():
         default_cfg = AppConfig()

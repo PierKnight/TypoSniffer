@@ -77,16 +77,10 @@ class WebsiteRecord(Base):
     id = Column(Integer, primary_key=True)  
     suspicious_domain_id = Column(Integer, ForeignKey('suspicious_domain.id', ondelete='CASCADE'), nullable=False)
 
-    website_url = Column(String, nullable=False)  
-    screenshot_id = Column(Integer, nullable=False),
-    screenshot_hash = Column(Integer(), nullable=False)
-    creation_date = Column(DateTime, nullable=False)
+    website_url = Column(String, nullable=True)  
+    screenshot_hash = Column(String(16), nullable=True)
+    creation_date = Column(DateTime, nullable=False, index=True)
     website_exists = Column(Boolean, nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint('suspicious_domain_id', 'screenshot_id'),
-    )
-    
 
 
     

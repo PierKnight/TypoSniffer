@@ -71,6 +71,7 @@ cli.add_command(fuzzing)
 
 
 
-    
+if __name__ == "__init__":
+    main()
 
 
