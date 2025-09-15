@@ -76,7 +76,6 @@ def scan_domain(domain: DomainDTO):
 
         image_hash = imagehash.dhash(Image.open(image_file))
 
-        date, image_path = save_screenshot(domain, image_bytes)
     except Exception as e:
         console.print_error("Failed to retrieve {domain.name} webpage")
         raise
@@ -96,10 +95,12 @@ def scan_domain(domain: DomainDTO):
             register_record = now_website_exists ^ last_website_exist
 
             if now_website_exists and last_website_exist:
-                register_record = imagehash.ImageHash(hex_to_binary_array(last_record.screenshot_hash)) - image_hash > 5
+                register_record = imagehash.hex_to_hash(last_record.screenshot_hash) - image_hash > 5
 
             if register_record:
+                
 
+                date, image_path = save_screenshot(domain, image_bytes)
 
                 new_record = WebsiteRecord(
                     website_url = url,
