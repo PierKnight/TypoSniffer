@@ -1,7 +1,7 @@
 from pathlib import Path
 import click
 from typosniffer.data.dto import DomainDTO
-from typosniffer.fuzzing import fuzzer
+from typosniffer.sniffing import fuzzer
 from typosniffer.utils import utility
 from typosniffer.utils import console
 

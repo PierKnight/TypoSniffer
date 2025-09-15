@@ -7,7 +7,7 @@ import dns
 from dns import exception
 from pydantic import BaseModel, ConfigDict, Field
 from typosniffer.data.dto import DomainDTO
-from typosniffer.fuzzing import fuzzer
+from typosniffer.sniffing import fuzzer
 from typosniffer.sniffing import tf_idf
 from typosniffer.utils import console
 from dns import resolver
