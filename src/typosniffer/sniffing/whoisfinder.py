@@ -1,7 +1,5 @@
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import errno
-import socket
 import whoisit
 from whoisit.errors import RateLimitedError
 from typosniffer.utils import console
@@ -48,6 +46,8 @@ def find_whois(domains: list[str], requests_per_minute: int = 10, max_workers: i
         
         future_to_query = {}
 
+        processed = 0
+
         #process first 10 queries for each tld
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             
@@ -60,13 +60,14 @@ def find_whois(domains: list[str], requests_per_minute: int = 10, max_workers: i
                     domain = future_to_query[future]
                     whois_result = future.result()
                     results[domain] = whois_result
+                    processed += 1
                 except RateLimitedError as e:
                     console.print_error(f"Failed to whois domain: {domain}, {e} retrying in the next batch")
                     domains_to_process.append(domain)
                 except Exception as e:
                     console.print_error(f"Failed to whois domain: {domain} retry later, {e}")
 
-        console.print_info(f"Processed {len(future_to_query)}")
+        console.print_info(f"Processed {processed}")
         #wait for one minute if there are still domains to be processed
         if len(domains_to_process) > 0:
             with console.status("Waiting for next batch of whoip"):

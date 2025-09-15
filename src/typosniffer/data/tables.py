@@ -42,6 +42,9 @@ class SuspiciousDomain(Base):
     dnssec= Column(Boolean())
 
     entities = relationship("Entity", secondary=suspicious_domain_entity, back_populates="suspicious_domains")
+    records = relationship("WebsiteRecord", backref='suspicious_domain', cascade='all, delete-orphan, delete', passive_deletes=True)
+
+
 
 
 class Entity(Base):
@@ -68,4 +71,22 @@ class Entity(Base):
 
     suspicious_domains = relationship("SuspiciousDomain", secondary=suspicious_domain_entity, back_populates="entities")
 
+class WebsiteRecord(Base):
+    __tablename__ = "website_record"
 
+    id = Column(Integer, primary_key=True)  
+    suspicious_domain_id = Column(Integer, ForeignKey('suspicious_domain.id', ondelete='CASCADE'), nullable=False)
+
+    website_url = Column(String, nullable=False)  
+    screenshot_id = Column(Integer, nullable=False),
+    screenshot_hash = Column(Integer(), nullable=False)
+    creation_date = Column(DateTime, nullable=False)
+    website_exists = Column(Boolean, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('suspicious_domain_id', 'screenshot_id'),
+    )
+    
+
+
+    

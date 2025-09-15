@@ -43,6 +43,10 @@ def list():
         for domain in domains:
             console.print_info(f"{domain.name}")
 
+        if len(domains) == 0:
+            console.print_info("No domains registered: use 'typosniffer domain add' to add a new one")
+            
+
 @domain.command()
 def clear():
     """Clear list of registered domains"""
