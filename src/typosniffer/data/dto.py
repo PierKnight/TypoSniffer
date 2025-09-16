@@ -22,6 +22,7 @@ class EntityType(enum.Enum):
 class SuspiciousDomainDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
 
+    id: int
     name: str = Field(pattern=VALID_FQDN_REGEX)
     original_domain: str = Field(pattern=VALID_FQDN_REGEX)
 
