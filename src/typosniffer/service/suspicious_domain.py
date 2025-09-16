@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
 
 from typosniffer.data.database import DB
-from typosniffer.data.dto import DomainDTO, EntityType
+from typosniffer.data.dto import EntityType, SuspiciousDomainDTO
 from typosniffer.data.tables import Domain, Entity, SuspiciousDomain
 from typosniffer.sniffing.sniffer import SniffResult
 from typosniffer.utils.exceptions import ServiceFailure
+from sqlalchemy.orm import joinedload
 
 def delete_entity_orphan(session: Session):
     """Delete all the entities without any suspicious domains"""
@@ -108,13 +109,15 @@ def add_suspicious_domain(sniff_results: set[SniffResult], whois_data: dict):
                     )
                 )
 
-def get_suspicious_domains() -> list[DomainDTO]:
+def get_suspicious_domains() -> list[SuspiciousDomainDTO]:
 
     with DB.get_session() as session:
         
-        domains = session.query(SuspiciousDomain).all()
+        suspicious_domains = session.query(SuspiciousDomain).options(
+            joinedload(SuspiciousDomain.original_domain)
+        ).all()
 
-        return [DomainDTO(id = domain.id, name = domain.name) for domain in domains]
+        return [SuspiciousDomainDTO(id = sd.id, name = sd.name, original_domain=sd.original_domain.name) for sd in suspicious_domains]
 
 
 

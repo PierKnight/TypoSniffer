@@ -10,7 +10,7 @@ USER_AGENT = f"TypoSniffer/{version("typosniffer")}"
 WEBDRIVER_ARGUMENTS = (
 		'--disable-dev-shm-usage',
 		'--ignore-certificate-errors',
-		'--headless',
+		'--headless=new',
 #		'--incognito',
 #		'--no-sandbox',
 		'--disable-gpu',
@@ -66,8 +66,6 @@ def resolve_url(domain: str) -> str:
     https_url = f"https://{domain}"
     try:
         r = requests.head(https_url, timeout=3, allow_redirects=True)
-        print(r.status_code)
-        print(r.text)
         if r.status_code < 400: 
             return https_url
     except Exception:
