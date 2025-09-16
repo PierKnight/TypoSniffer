@@ -1,6 +1,4 @@
-from pathlib import Path
 import click
-import imagehash
 from rich.table import Table
 from pydantic import ValidationError
 from typosniffer.utils import console
@@ -11,7 +9,6 @@ from typosniffer.cli.scan import scan, clear
 from typosniffer.cli.sniff import sniff
 from typosniffer.cli.fuzzing import fuzzing
 from typosniffer.cli.sus_domain import sus_domain
-from PIL import Image
 
 
 def print_banner():
@@ -62,25 +59,6 @@ def main():
     except Exception:
         console.console.print_exception()
         return None
-
-
-@cli.command
-@click.argument("file1", type=click.Path(file_okay=True))
-@click.argument("file2", type=click.Path(file_okay=True))
-def compare(file1: Path, file2: Path):
-
-    hash_def = imagehash.dhash
-
-    size = 64
-
-    hash1 = hash_def(Image.open(file1), hash_size=size)
-    hash2 = hash_def(Image.open(file2), hash_size=size)
-
-    hash1 = imagehash.hex_to_hash(str(hash1))
-    hash2 = imagehash.hex_to_hash(str(hash2))
-
-    print(f"SIMILARITY {1 - (hash2 - hash1) / (size * 8)}")
-
 
 
 cli.add_command(sus_domain)
