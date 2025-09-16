@@ -23,14 +23,24 @@ import io
 @dataclass(frozen=True)
 class ScreenShotInfo:
     image: Image.Image
-    url: str
+    url: Optional[str]
 
 @dataclass(frozen=True)
-class ScanResult:
-    suspicious_domain: SuspiciousDomainDTO
+class UpdateReport:
     url: str
-    
-    image_path: Path
+    date: datetime
+
+@dataclass(frozen=True)
+class PhishingReport:
+    cnn_similarity: float
+    hash_similarity: float
+
+@dataclass(frozen=True)
+class DomainReport:
+    suspicious_domain: SuspiciousDomainDTO
+    update_report: UpdateReport
+    phishing_report: PhishingReport
+
 
 
 class DomainScreenshotBucket:
@@ -57,7 +67,11 @@ class DomainScreenshotBucket:
 
         
         
+def get_screenshot_from_file(domain: SuspiciousDomainDTO, date: datetime) -> Image.Image:
 
+    timestamp = date.strftime("%Y%m%d_%H%M%S")
+    image_file = get_config().monitor.screenshot_dir / domain.name / f"{timestamp}.png"
+    return Image.open(image_file)
     
 
 def get_screenshot(domain: str) -> Optional[ScreenShotInfo]:
@@ -112,7 +126,7 @@ def compare_records(last_record: Optional[WebsiteRecord], new_record: WebsiteRec
     
     return register_record
 
-def check_domain_updated(screenshot: Optional[ScreenShotInfo], domain: SuspiciousDomainDTO):
+def check_domain_updated(screenshot: Optional[ScreenShotInfo], domain: SuspiciousDomainDTO) -> Optional[UpdateReport]:
     
 
     now_website_exists = screenshot is not None
@@ -137,7 +151,7 @@ def check_domain_updated(screenshot: Optional[ScreenShotInfo], domain: Suspiciou
             if compare_records(last_record, new_record):
                 session.add(new_record)
                 image_path = save_screenshot(date, domain, screenshot)
-                return True
+                return UpdateReport(date=date, url=screenshot.url)
 
         except Exception:
             #if transaction fails delete image to maintain consistency
@@ -147,32 +161,37 @@ def check_domain_updated(screenshot: Optional[ScreenShotInfo], domain: Suspiciou
                     os.removedirs(image_path.parent)
             raise
     
-    return False
+    return None
 
 
 
-def check_domain_phishing(real_screenshot: Optional[ScreenShotInfo], phish_screenshot: Optional[ScreenShotInfo], image_comparator: cnn.ImageComparator, domain: SuspiciousDomainDTO):
+def check_domain_phishing(real_screenshot: Optional[ScreenShotInfo], phish_screenshot: Optional[ScreenShotInfo], image_comparator: cnn.ImageComparator) -> PhishingReport:
     
     if real_screenshot and phish_screenshot:
     
         #method that compares sus domain to real domain screenshot 
-        #real_hash = imagehash.phash(real_screenshot.image)
-        #phish_hash = imagehash.phash(phish_screenshot.image)
+        real_hash = imagehash.phash(real_screenshot.image)
+        phish_hash = imagehash.phash(phish_screenshot.image)
 
-        #return real_hash - phish_hash
+        hash_similarity = (real_hash - phish_hash) / 64
+        cnn_similarity = image_comparator.get_similarity(real_screenshot.image, phish_screenshot.image)
 
-        return image_comparator.get_similarity(real_screenshot.image, phish_screenshot.image)
-    return 60
+        return PhishingReport(cnn_similarity, hash_similarity)
+    return None
 
 
-def scan_domain(domain: SuspiciousDomainDTO, screenshot_data: DomainScreenshotBucket, image_comparator: cnn.ImageComparator):
+def scan_domain(domain: SuspiciousDomainDTO, screenshot_data: DomainScreenshotBucket, image_comparator: cnn.ImageComparator) -> DomainReport:
     
     real_domain_screenshot = screenshot_data.get(domain.original_domain)
     phish_screenshot = get_screenshot(domain.name)
 
-    print(check_domain_phishing(real_domain_screenshot, phish_screenshot, image_comparator, domain))
-    return 1
-    #return check_domain_updated(phish_screenshot, domain)
+    update_report = check_domain_updated(phish_screenshot, domain)
+    phishing_report = check_domain_phishing(real_domain_screenshot, phish_screenshot, image_comparator)
+    return DomainReport(
+        suspicious_domain = domain,
+        update_report = update_report,
+        phishing_report = phishing_report
+    )
 
 
 def monitor_domains(domains: list[SuspiciousDomainDTO], max_workers: int = 4):
@@ -191,15 +210,10 @@ def monitor_domains(domains: list[SuspiciousDomainDTO], max_workers: int = 4):
         for future in as_completed(futures):
             domain = futures[future]
             try:
-                result = future.result()
-
-                if result:
-                    pass #send notification since domain changed
-
-                console.print_info(f"{domain.name} -> {result}")
-            except Exception:
-                console.console.print(f"{domain} failed")
-                console.console.print_exception()
+                report = future.result()
+                console.print_info(f"{domain.name} -> {report}")
+            except Exception as e:
+                console.console.print(f"{domain} failed: {e}")
 
 
     
