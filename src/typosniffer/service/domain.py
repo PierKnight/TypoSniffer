@@ -16,7 +16,7 @@ class DomainResult:
 def get_domains() -> list[DomainDTO]:
     """Retrieve all domains that need to be scanned"""
 
-    with DB.get_session() as session, session.begin():
+    with DB.get_session() as session:
 
         domains = session.query(Domain).all()
 
@@ -28,7 +28,7 @@ def get_domains() -> list[DomainDTO]:
 def add_domains(domains: list[DomainDTO]):
     """Add list of validated domains to DB"""
     
-    with DB.get_session() as session, session.begin():
+    with DB.get_session() as session:
         for domain in domains:
             orm_domain = dto_to_orm(domain, Domain)
             session.add(orm_domain)

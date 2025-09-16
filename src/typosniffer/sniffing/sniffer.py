@@ -153,6 +153,7 @@ def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria) ->
             domain_to_scan = line.strip()
 
             for domain in domains:
+                
 
                 sniff_result = compare_domain(domain.name, domain_to_scan, criteria)
 
