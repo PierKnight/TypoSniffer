@@ -4,6 +4,7 @@ from importlib import resources
 import json
 from pathlib import Path
 from typing import Any, List, Generator
+from pydantic import BaseModel
 from typeguard import typechecked
 from typosniffer.utils import console
 import tldextract
@@ -33,12 +34,6 @@ def list_file_option(ctx, param, value: str) -> List[str]:
     return read_lines(Path(value))
 
 
-def comma_separated_option(ctx, param, value: str) -> List[str]:
-    if value is None:
-        return None
-    return value.split(",")
-
-
 def strip_tld(domain: str) -> str:
     extracted = tldextract.extract(domain)
     return extracted.suffix, f"{extracted.subdomain}.{extracted.domain}" if extracted.subdomain else extracted.domain
@@ -47,8 +42,11 @@ def strip_tld(domain: str) -> str:
 def to_serializable(obj: Any) -> Any:
     """Convert class instances into dicts, dataclasses to dicts, etc."""
 
-    if is_dataclass(obj):
-        return asdict(obj)
+
+    if isinstance(obj, BaseModel):
+        return obj.model_dump()
+    elif is_dataclass(obj):
+        return to_serializable(asdict(obj))
     elif isinstance(obj, dict):
         return {k: to_serializable(v) for k, v in obj.items()}
     elif hasattr(obj, "__dict__"):
@@ -56,7 +54,6 @@ def to_serializable(obj: Any) -> Any:
     elif isinstance(obj, (list, tuple, Generator)):
         return [to_serializable(i) for i in obj]
     
-
     return obj
 
 

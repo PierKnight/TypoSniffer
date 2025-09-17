@@ -41,6 +41,5 @@ class SniffCriteria(BaseModel):
 def dto_to_orm(dto: BaseModel, orm_cls):
     return orm_cls(**dto.model_dump())
 
-
 def orm_to_dto(orm, dto: Type[BaseModel]):
     return dto.model_validate(orm)

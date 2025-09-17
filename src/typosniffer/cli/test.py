@@ -1,9 +1,14 @@
+import datetime
 from pathlib import Path
 from PIL import Image
 import click
 import imagehash
 
+from typosniffer.data.dto import SuspiciousDomainDTO
 from typosniffer.sniffing import cnn
+from typosniffer.sniffing.monitor import DomainReport, PhishingReport, UpdateReport
+
+from typosniffer.utils.email import get_body, send_email
 
 
 @click.command
@@ -27,3 +32,20 @@ def compare(file1: Path, file2: Path):
     cnn_comparator = cnn.ImageComparator()
 
     print(f"SIMILARITY CNN {cnn_comparator.get_similarity(image1, image2)}")
+
+@click.command
+def email():
+
+
+    reports = []
+
+    for i in range(2):
+        reports.append(DomainReport(
+            phishing_report=PhishingReport(cnn_similarity= 0.6, hash_similarity=0.7),
+            suspicious_domain=SuspiciousDomainDTO(id=1, name="g00gle.com", original_domain="google.com"),
+            update_report=UpdateReport(date=datetime.datetime.now(), url= "https://g00gle.com/sos")
+        ))
+
+    html = get_body({"reports": reports})
+
+    send_email("Suspicious Domains Update", html)
