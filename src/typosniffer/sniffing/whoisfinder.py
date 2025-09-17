@@ -29,7 +29,7 @@ def _whoisit(domain: str):
     except RateLimitedError as e:
         return whoisit.domain(domain, allow_insecure_ssl=True, follow_related=True)
 
-def find_whois(domains: list[str], requests_per_minute: int = 10, max_workers: int = 10):
+def find_whois(domains: list[str], requests_per_minute: int, max_workers: int):
 
     whoisit.bootstrap(overrides=True)
 

@@ -1,9 +1,10 @@
 import base64
-from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 import os
 from pathlib import Path
 from typosniffer.data.dto import DomainDTO
+import typosniffer.data.dto
 from typosniffer.utils import request
 from typosniffer.config import config
 from typosniffer.utils.console import console
@@ -121,43 +122,34 @@ def update_domains(update_days : int = 10, max_workers: int = 10) -> list[WhoIsD
     return total_updated
 
 
-def sniff_whoisds(domains: list[DomainDTO], whoisds_files: list[WhoIsDsFile], criteria: sniffer.SniffCriteria, max_workers: int = 10) -> set[sniffer.SniffResult]:
+def sniff_whoisds(domains: list[DomainDTO], whoisds_files: list[WhoIsDsFile], criteria: typosniffer.data.dto.SniffCriteria, max_workers: int) -> set[sniffer.SniffResult]:
 
     os.makedirs(WHOISDS_FOLDER, exist_ok=True)
 
     results = set()
 
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        future_to_file = {}
 
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TextColumn("[green]{task.completed}/{task.total} domain file scanned"),
-            console=console
-        ) as progress:
-            
-            total_files = 0
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TextColumn("[green]{task.completed}/{task.total} domain file scanned"),
+        console=console
+    ) as progress:
+        
+        total_files = len(whoisds_files)
 
-            for file in whoisds_files:
-                future_to_file[executor.submit(sniffer.sniff_file, file.path, domains, criteria)] = file
-                total_files += 1
-            
-            console.print(f"[bold green]Found {total_files} domain file/s![/bold green]")
+        task = progress.add_task("[green]Sniffing Domain Files...", total=total_files)
 
-            task = progress.add_task("[green]Sniffing Domain Files...", total=total_files)
-            
-            for future in as_completed(future_to_file):
-                file: WhoIsDsFile = future_to_file[future]
-                try:
-                    results.update(future.result())
-                except Exception as e:
-                    console.print(f"[bold red]Failed to sniff domain file: {file.date}, {e}[/bold red]") 
-                finally:
-                    progress.update(task, advance=1)
+        for file in whoisds_files:
+            sniff_results = sniffer.sniff_file(file.path, domains, criteria, max_workers)
+            results.update(sniff_results)
+            progress.update(task, advance=1)
+        
+        console.print(f"[bold green]Found {total_files} domain file/s![/bold green]")
 
+        
     console.print("[bold green]Domain Sniffing completed![/bold green]")
 
     if len(results) > 0:

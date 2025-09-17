@@ -4,8 +4,9 @@ from pydantic import ValidationError
 from typosniffer.utils import console
 from typosniffer.config import config
 from typeguard import typechecked
+from typosniffer.cli.config import config as config_cli
 from typosniffer.cli.domain import domain
-from typosniffer.cli.scan import scan, clear
+from typosniffer.cli.discovery import discovery, clear
 from typosniffer.cli.sniff import sniff
 from typosniffer.cli.fuzzing import fuzzing
 from typosniffer.cli.sus_domain import sus_domain
@@ -61,11 +62,12 @@ def main():
         return None
 
 
+cli.add_command(config_cli)
 cli.add_command(sus_domain)
 cli.add_command(domain)
 cli.add_command(sniff)
 cli.add_command(clear)
-cli.add_command(scan)
+cli.add_command(discovery)
 cli.add_command(fuzzing)
 
 

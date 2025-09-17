@@ -26,6 +26,16 @@ class SuspiciousDomainDTO(BaseModel):
     name: str = Field(pattern=VALID_FQDN_REGEX)
     original_domain: str = Field(pattern=VALID_FQDN_REGEX)
 
+class SniffCriteria(BaseModel):
+
+    model_config = ConfigDict(frozen=True)
+
+    damerau_levenshtein: Optional[int] = Field(1, ge=1)
+    hamming: Optional[int] = Field(None, ge=1)
+    jaro: Optional[float] = Field(0.9, ge=0, le=1)
+    jaro_winkler: Optional[float] = Field(None, ge=0, le=1)
+    levenshtein: Optional[int] = Field(None, ge=1)
+    tf_idf: Optional[float] = Field(None, ge=0, le=1)
 
 
 def dto_to_orm(dto: BaseModel, orm_cls):

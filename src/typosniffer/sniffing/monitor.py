@@ -1,10 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-import os
 from pathlib import Path
 import threading
 from typing import Optional
-
+from selenium.common.exceptions import WebDriverException, TimeoutException
 from dataclasses import dataclass
 from typosniffer.config.config import get_config
 from typosniffer.data.database import DB
@@ -76,8 +75,8 @@ def get_screenshot_from_file(domain: SuspiciousDomainDTO, date: datetime) -> Ima
 
 def get_screenshot(domain: str) -> Optional[ScreenShotInfo]:
 
-    try:
 
+    try:
         url = request.resolve_url(domain)
 
         browser = request.Browser(url, timeout=get_config().monitor.page_load_timeout)
@@ -86,13 +85,13 @@ def get_screenshot(domain: str) -> Optional[ScreenShotInfo]:
         
         image_file = io.BytesIO(image_bytes)
 
-        #image_hash = imagehash.dhash(Image.open(image_file))
+        return ScreenShotInfo(Image.open(image_file, formats=['png']), url)
+    except WebDriverException as e:
+        pass
 
-        return ScreenShotInfo(Image.open(image_file), url)
+    return None
+    
 
-    except Exception as e:
-        console.print_error(f"Failed to retrieve {url} webpage")
-        raise
 
 def save_screenshot(date: datetime, domain: SuspiciousDomainDTO, screenshot: ScreenShotInfo) -> Path:
 
@@ -116,7 +115,7 @@ def compare_records(last_record: Optional[WebsiteRecord], new_record: WebsiteRec
 
     last_website_exist = last_record.website_exists if last_record else False
 
-    register_record = last_website_exist ^ new_record.website_exists
+    register_record = last_record is None or last_website_exist ^ new_record.website_exists
 
     if last_website_exist and new_record.website_exists:
             difference = imagehash.hex_to_hash(last_record.screenshot_hash) - imagehash.hex_to_hash(new_record.screenshot_hash)
@@ -131,36 +130,27 @@ def check_domain_updated(screenshot: Optional[ScreenShotInfo], domain: Suspiciou
 
     now_website_exists = screenshot is not None
     screenshot_hash = imagehash.dhash(screenshot.image) if now_website_exists else None 
-    image_path = None
 
     with DB.get_session() as session, session.begin():
 
-        try:
-            last_record = website_record.get_last_record_of_domain(session, domain)
-        
-            date = datetime.now()
-
-            new_record = WebsiteRecord(
-                website_url = screenshot.url,
-                screenshot_hash = str(screenshot_hash),
-                creation_date = date,
-                suspicious_domain_id = domain.id,
-                website_exists = now_website_exists
-            )
-            
-            if compare_records(last_record, new_record):
-                session.add(new_record)
-                image_path = save_screenshot(date, domain, screenshot)
-                return UpdateReport(date=date, url=screenshot.url)
-
-        except Exception:
-            #if transaction fails delete image to maintain consistency
-            if image_path:
-                os.remove(image_path)
-                if len(os.listdir(image_path.parent)) == 0:
-                    os.removedirs(image_path.parent)
-            raise
+        last_record = website_record.get_last_record_of_domain(session, domain)
     
+        date = datetime.now()
+
+        new_record = WebsiteRecord(
+            website_url = screenshot.url if now_website_exists else None,
+            screenshot_hash = str(screenshot_hash) if now_website_exists else None,
+            creation_date = date,
+            suspicious_domain_id = domain.id,
+            website_exists = now_website_exists
+        )
+        
+        if compare_records(last_record, new_record):
+            session.add(new_record)
+            if now_website_exists:
+                save_screenshot(date, domain, screenshot)
+            return UpdateReport(date=date, url=new_record.website_url)
+
     return None
 
 
@@ -194,7 +184,7 @@ def scan_domain(domain: SuspiciousDomainDTO, screenshot_data: DomainScreenshotBu
     )
 
 
-def monitor_domains(domains: list[SuspiciousDomainDTO], max_workers: int = 4):
+def inspect_domains(domains: list[SuspiciousDomainDTO], max_workers: int = 4):
 
 
     image_comparator = cnn.ImageComparator()
@@ -211,9 +201,20 @@ def monitor_domains(domains: list[SuspiciousDomainDTO], max_workers: int = 4):
             domain = futures[future]
             try:
                 report = future.result()
-                console.print_info(f"{domain.name} -> {report}")
+                
+                if report.update_report:
+                    console.print_info(f"Domain {domain.name} updated: {report.update_report}")
+                if report.phishing_report:
+                    console.print_info(f"Domain {domain.name} phishing scan: {report.phishing_report}")
+
+            except WebDriverException as e:
+                console.print_error(f"Failed to retrieve: {domain}")
+            except TimeoutException as e:
+                console.print_error(f"Website took too much time to load: {domain}")
             except Exception as e:
-                console.console.print(f"{domain} failed: {e}")
+                console.print_error(f"Monitor for {domain} failed")
+                console.console.print_exception()
+
 
 
     

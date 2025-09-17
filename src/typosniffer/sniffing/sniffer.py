@@ -1,12 +1,11 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from itertools import cycle
 from pathlib import Path
-from typing import Optional
 import dns
 from dns import exception
-from pydantic import BaseModel, ConfigDict, Field
 from typosniffer.data.dto import DomainDTO
+from typosniffer.data.dto import SniffCriteria
 from typosniffer.sniffing import fuzzer
 from typosniffer.sniffing import tf_idf
 from typosniffer.utils import console
@@ -14,21 +13,8 @@ from dns import resolver
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 import textdistance
 from typosniffer.utils.utility import strip_tld
+import numpy
 
-
-
-
-
-class SniffCriteria(BaseModel):
-
-    model_config = ConfigDict(frozen=True)
-
-    damerau_levenshtein: Optional[int] = Field(None, ge=1)
-    hamming: Optional[int] = Field(None, ge=1)
-    jaro: Optional[float] = Field(None, ge=0, le=1)
-    jaro_winkler: Optional[float] = Field(None, ge=0, le=1)
-    levenshtein: Optional[int] = Field(None, ge=1)
-    tf_idf: Optional[float] = Field(None, ge=0, le=1)
 
 @dataclass(frozen=True)
 class SniffResult:
@@ -142,23 +128,39 @@ def search_dns(domain: DomainDTO, tld_dictionary: list[str], word_dictionary: li
                 
     return results
 
-def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria) -> set[SniffResult]:
+def scan_domains(chunk: list[str], domains: list[DomainDTO], criteria: SniffCriteria) -> set[SniffResult]:
+
+    results = set()
+    for domain_to_scan in chunk:
+        for domain in domains:
+                
+            sniff_result = compare_domain(domain.name, domain_to_scan, criteria)
+
+            if sniff_result.suspicious:
+                results.add(sniff_result)
+    return results
+
+def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria, max_workers: int) -> set[SniffResult]:
     """
     Given a file, it will read every domain in them and perform checks for similarities with a domain/domains
     """
+
+    with open(file, "r") as f:
+        domains_to_scan = [line.strip() for line in f.readlines()]
+
+    chunks = numpy.array_split(numpy.array(domains_to_scan), max_workers)
+
+    with ProcessPoolExecutor(max_workers=len(chunks)) as executor:
+        futures = [executor.submit(scan_domains, chunk, domains, criteria) for chunk in chunks]
+
     results = set()
-    with open(file, "r", encoding="utf-8") as f:
-        for line in f:
-                
-            domain_to_scan = line.strip()
 
-            for domain in domains:
-                
-
-                sniff_result = compare_domain(domain.name, domain_to_scan, criteria)
-
-                if sniff_result.suspicious:
-                    results.add(sniff_result)
+    for future in futures:
+        try:
+            results.update(future.result())
+        except Exception:
+            console.console.print_exception()
+    
     return results
 
     
