@@ -4,10 +4,10 @@ import os
 from typing import Optional
 import yaml
 from pathlib import Path
-from pydantic import BaseModel, ConfigDict, DirectoryPath, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, DirectoryPath, EmailStr, Field, FilePath
 from typosniffer.data.dto import SniffCriteria
 from typosniffer.utils import console
-from typosniffer.utils.utility import expand_and_create_dir
+from typosniffer.utils.utility import expand_and_create_dir, get_resource
 import multiprocessing
 
 class EmailConfig(BaseModel):
@@ -19,6 +19,8 @@ class EmailConfig(BaseModel):
     sender_email: EmailStr
     receiver_email: EmailStr
     starttls: bool
+
+    template: FilePath = get_resource('email.html.j2')
 
 
 #configuration used in the discovery step

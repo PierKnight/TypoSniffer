@@ -37,8 +37,8 @@ class PhishingReport:
 @dataclass(frozen=True)
 class DomainReport:
     suspicious_domain: SuspiciousDomainDTO
-    update_report: UpdateReport
-    phishing_report: PhishingReport
+    update_report: Optional[UpdateReport]
+    phishing_report: Optional[PhishingReport]
 
 
 

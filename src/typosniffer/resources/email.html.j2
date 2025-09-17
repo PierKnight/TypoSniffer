@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #f4f4f4; }
+    .missing { color: #888; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>Domain Reports</h1>
+
+  {% for report in reports %}
+    <h2>{{ report.suspicious_domain.name }}</h2>
+    <table>
+      <tr>
+        <th>Original domain</th>
+        <td>{{ report.suspicious_domain.original_domain }}</td>
+      </tr>
+      <tr>
+        <th>Created At</th>
+        <td>{{ report.suspicious_domain.created_at }}</td>
+      </tr>
+      <tr>
+        <th>Update Report</th>
+        <td>
+          {% if report.update_report %}
+            Status: {{ report.update_report.status }} ({{ report.update_report.updated_at }})
+          {% else %}
+            <span class="missing">No update report</span>
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <th>Phishing Report</th>
+        <td>
+          {% if report.phishing_report %}
+            Reported: {{ report.phishing_report.reported_at }} <br>
+            <a href="{{ report.phishing_report.evidence_link }}">Evidence</a>
+          {% else %}
+            <span class="missing">No phishing report</span>
+          {% endif %}
+        </td>
+      </tr>
+    </table>
+  {% endfor %}
+</body>
+</html>

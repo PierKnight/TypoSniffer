@@ -1,10 +1,33 @@
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from typing import Any
 from typosniffer.config.config import get_config
 import smtplib
+from jinja2 import Environment, FileSystemLoader, Template
+
+from typosniffer.utils.utility import to_serializable
+
+    
+def get_body(context: Any):
+
+    serialized = to_serializable(context)
+
+    template_file = get_config().email.template
+
+    env = Environment(
+        loader=FileSystemLoader(template_file.parent),
+        autoescape=True, 
+    )
+
+    template: Template = env.get_template(template_file.name)
+
+    html_content = template.render(serialized)
+
+    return html_content
 
 
-def send_email(subject: str, body: str) -> bool:
+
+def send_email(subject: str, html: str) -> bool:
 
     cfg = get_config()
 
@@ -27,7 +50,7 @@ def send_email(subject: str, body: str) -> bool:
     msg["Subject"] = subject
 
     # Attach the body text
-    msg.attach(MIMEText(body, "plain"))
+    msg.attach(MIMEText(html, "html"))
     server.send_message(msg)
 
     # Close the connection
