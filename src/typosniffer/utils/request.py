@@ -2,7 +2,7 @@ from typing import Tuple
 import requests
 from importlib.metadata import version
 from selenium import webdriver
-
+from selenium.webdriver.support.ui import WebDriverWait
 
 USER_AGENT = f"TypoSniffer/{version("typosniffer")}"
 
@@ -87,13 +87,17 @@ class Browser:
 		for opt in WEBDRIVER_ARGUMENTS:
 			chrome_options.add_argument(opt)
 		
+		
 		self.driver = webdriver.Chrome(options=chrome_options)
 		self.driver.execute_cdp_cmd('Network.setUserAgentOverride', {'userAgent':USER_AGENT})
 		self.driver.set_page_load_timeout(timeout)
+
+		WebDriverWait(self.driver, timeout).until(lambda d: d.execute_script("return document.readyState") == "complete")
           
 	def screenshot(self) -> Tuple[bytes, str]:
 		try:
 			self.driver.get(self.url)
+            
 			return self.driver.get_screenshot_as_png(), self.driver.current_url
 		finally:
 			self.driver.quit()

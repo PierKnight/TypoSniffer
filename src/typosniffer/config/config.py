@@ -5,8 +5,10 @@ from typing import Optional
 import yaml
 from pathlib import Path
 from pydantic import BaseModel, ConfigDict, DirectoryPath, EmailStr, Field
+from typosniffer.data.dto import SniffCriteria
 from typosniffer.utils import console
 from typosniffer.utils.utility import expand_and_create_dir
+import multiprocessing
 
 class EmailConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -18,18 +20,34 @@ class EmailConfig(BaseModel):
     receiver_email: EmailStr
     starttls: bool
 
+
+#configuration used in the discovery step
+class DiscoveryConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    updating_workers: int = Field(default = multiprocessing.cpu_count(), ge=1, description='Thread Pool Size used to download domain files')
+    discovery_workers: int = Field(default = multiprocessing.cpu_count(), ge=1, description='Process Pool Size used to scan domain files')
+    days: int = Field(default = 1, ge=1)
+    clear_days: Optional[int] = Field(None, ge=1)
+    criteria: SniffCriteria = Field(SniffCriteria(), description='Criteria used when evaluating a domain')
+    
+    #whois
+    whois_workers: int = Field(default = 10, ge=1, description='Thread Pool Size used to retrieve whois information from domains')
+    requests_per_minute: int = Field(default = 10, ge=1, description='Whois request per minute per Top-Level Domain')
+
+#configuration used in the inspection step
 class MonitorConfig(BaseModel):
 
-    screenshot_dir: DirectoryPath = expand_and_create_dir("~/.typosniffer/screenshots")
+    screenshot_dir: DirectoryPath = expand_and_create_dir("~/.typosniffer/screenshot")
     page_load_timeout: int = Field(default = 30, ge=0)
     hash_threeshold: int = Field(default = 3, ge=0, le=16)
-    max_workers: int = Field(default = 4, ge=1)
-    
+    max_workers: int = Field(default = multiprocessing.cpu_count(), ge=1)
+
 
 
 class AppConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
+    discovery: DiscoveryConfig = DiscoveryConfig()
     monitor: MonitorConfig = MonitorConfig()
     email: Optional[EmailConfig] = None
 
@@ -37,24 +55,23 @@ class AppConfig(BaseModel):
 cfg : AppConfig = None
 
 FOLDER = Path(os.path.expanduser("~/.typosniffer"))
+CONFIG = FOLDER / "config.yaml"
 
 def load():
     global cfg
     os.makedirs(FOLDER, exist_ok=True)
-
-    config_file = FOLDER / "config.yaml"
     
-    if not config_file.exists():
+    if not CONFIG.exists():
         default_cfg = AppConfig()
         config_json = default_cfg.model_dump_json()
         
         data = json.loads(config_json)
 
-        with open(config_file, "w") as f:
+        with open(CONFIG, "w") as f:
             yaml.dump(data , f, sort_keys=False)
     
     # Load YAML
-    with open(config_file, "r") as f:
+    with open(CONFIG, "r") as f:
         config_data = yaml.safe_load(f)
 
         cfg = AppConfig(**config_data)

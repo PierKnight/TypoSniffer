@@ -4,7 +4,7 @@ import click
 
 from typosniffer.config.config import get_config
 from typosniffer.service import suspicious_domain
-from typosniffer.sniffing.monitor import monitor_domains
+from typosniffer.sniffing.monitor import inspect_domains
 from typosniffer.utils import console
 
 
@@ -14,8 +14,7 @@ def sus_domain():
 
 
 @sus_domain.command()
-@click.option('-w', '--max-workers', default= 4, type=click.IntRange(min=1))
-def monitor(max_workers: int):
+def inspect():
 
     with console.status("Retrieving suspicious domain list"):
         domains = suspicious_domain.get_suspicious_domains()
@@ -26,4 +25,6 @@ def monitor(max_workers: int):
 
     cfg = get_config()
 
-    monitor_domains(domains, cfg.monitor.max_workers)
+    with console.status("Inspecting suspicious domains"):
+        domains = suspicious_domain.get_suspicious_domains()
+        inspect_domains(domains, cfg.monitor.max_workers)
