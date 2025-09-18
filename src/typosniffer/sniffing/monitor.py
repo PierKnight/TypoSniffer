@@ -144,9 +144,6 @@ def compare_records(last_record: Optional[WebsiteRecord], new_record: WebsiteRec
         if last_website_exist:
             # Both last and new records exist; compare screenshots to detect changes
             difference = imagehash.hex_to_hash(last_record.screenshot_hash) - imagehash.hex_to_hash(new_record.screenshot_hash)
-
-            print(f"PHISH HASH SIZE {len(imagehash.hex_to_hash(last_record.screenshot_hash))}")
-            print(f"COMPARE HASH DIFF {difference}")
             
             # If the image difference exceeds the configured threshold, mark as changed
             if difference > cfg.hash_threeshold:
@@ -201,10 +198,6 @@ def check_domain_phishing(real_screenshot: Optional[ScreenShotInfo], phish_scree
         #method that compares sus domain to real domain screenshot 
         real_hash = imagehash.phash(real_screenshot.image)
         phish_hash = imagehash.phash(phish_screenshot.image)
-
-        print(f"PHISH HASH SIZE {len(real_hash)}")
-        print(f"PHISH HASH DIFF {real_hash - phish_hash}")
-
         hash_similarity = (real_hash - phish_hash) / 64
         cnn_similarity = image_comparator.get_similarity(real_screenshot.image, phish_screenshot.image)
 
