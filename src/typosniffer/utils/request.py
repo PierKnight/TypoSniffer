@@ -3,6 +3,7 @@ import requests
 from importlib.metadata import version
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.by import By
 
 USER_AGENT = f"TypoSniffer/{version("typosniffer")}"
 
@@ -97,7 +98,15 @@ class Browser:
 	def screenshot(self) -> Tuple[bytes, str]:
 		try:
 			self.driver.get(self.url)
-            
-			return self.driver.get_screenshot_as_png(), self.driver.current_url
+                  
+			required_width = self.driver.execute_script('return document.body.parentNode.scrollWidth')
+			required_height = self.driver.execute_script('return document.body.parentNode.scrollHeight')
+			self.driver.set_window_size(required_width, required_height)
+			
+			screenshot = self.driver.find_element(By.TAG_NAME, "body").screenshot_as_png
+                  
+			return screenshot, self.driver.current_url
+
+			#return self.driver.get_screenshot_as_png(), self.driver.current_url
 		finally:
 			self.driver.quit()
