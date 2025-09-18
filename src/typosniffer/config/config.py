@@ -20,7 +20,8 @@ class EmailConfig(BaseModel):
     receiver_email: EmailStr
     starttls: bool
 
-    template: FilePath = get_resource('template/email.html.j2')
+    discovery_template: FilePath = get_resource('template/discovery.html.j2')
+    inspection_template: FilePath = get_resource('template/inspection.html.j2')
 
 
 #configuration used in the discovery step
@@ -39,7 +40,7 @@ class DiscoveryConfig(BaseModel):
 #configuration used in the inspection step
 class MonitorConfig(BaseModel):
 
-    screenshot_dir: DirectoryPath = expand_and_create_dir("~/.typosniffer/screenshot")
+    screenshot_dir: DirectoryPath = expand_and_create_dir("~/.typosniffer/screenshots")
     page_load_timeout: int = Field(default = 30, ge=0)
     hash_threeshold: int = Field(default = 3, ge=0, le=16)
     max_workers: int = Field(default = multiprocessing.cpu_count(), ge=1)

@@ -1,4 +1,5 @@
 import enum
+from enum import Enum
 from typing import Optional, Type
 from pydantic import BaseModel, ConfigDict, Field
 from dnstwist import VALID_FQDN_REGEX
@@ -37,6 +38,13 @@ class SniffCriteria(BaseModel):
     levenshtein: Optional[int] = Field(None, ge=1)
     tf_idf: Optional[float] = Field(None, ge=0, le=1)
 
+class WebsiteStatus(Enum):
+    CHANGED = 'CHANGED'
+    DOWN = 'DOWN'
+    UP = 'UP'
+
+    def is_website_up(self) -> bool:
+        return self in (WebsiteStatus.UP, WebsiteStatus.CHANGED)
 
 def dto_to_orm(dto: BaseModel, orm_cls):
     return orm_cls(**dto.model_dump())

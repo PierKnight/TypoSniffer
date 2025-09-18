@@ -1,7 +1,7 @@
 import click
 from rich.table import Table
 from pydantic import ValidationError
-from typosniffer.cli.test import email
+from typosniffer.cli.test import compare
 from typosniffer.utils import console
 from typosniffer.config import config
 from typeguard import typechecked
@@ -70,7 +70,7 @@ cli.add_command(sniff)
 cli.add_command(clear)
 cli.add_command(discovery)
 cli.add_command(fuzzing)
-cli.add_command(email)
+cli.add_command(compare)
 
 
 

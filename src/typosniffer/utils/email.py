@@ -1,21 +1,20 @@
 from email.message import EmailMessage
 from typing import Any, List, Optional, Tuple
+
+from trio import Path
 from typosniffer.config.config import get_config
 import smtplib
 from jinja2 import Environment, FileSystemLoader, Template
 
-from typosniffer.data.dto import SuspiciousDomainDTO
 from typosniffer.utils.utility import to_serializable
 
 def datetime_format(value, fmt="%Y-%m-%d %H:%M"):
     return value.strftime(fmt)
 
     
-def get_body(context: Any):
+def get_body(template_file: Path, context: Any):
 
     serialized = to_serializable(context)
-
-    template_file = get_config().email.template
 
     env = Environment(
         loader=FileSystemLoader(template_file.parent),
