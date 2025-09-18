@@ -1,4 +1,6 @@
+import csv
 import datetime
+import io
 from pathlib import Path
 from PIL import Image
 import click
@@ -6,7 +8,6 @@ import imagehash
 
 from typosniffer.data.dto import SuspiciousDomainDTO
 from typosniffer.sniffing import cnn
-from typosniffer.sniffing.monitor import DomainReport, PhishingReport, UpdateReport
 
 from typosniffer.utils.email import get_body, send_email
 
@@ -37,15 +38,16 @@ def compare(file1: Path, file2: Path):
 def email():
 
 
-    reports = []
+    domains = [SuspiciousDomainDTO(id=344, name="pepo.it", original_domain="google.com")]
 
-    for i in range(2):
-        reports.append(DomainReport(
-            phishing_report=PhishingReport(cnn_similarity= 0.6, hash_similarity=0.7),
-            suspicious_domain=SuspiciousDomainDTO(id=1, name="g00gle.com", original_domain="google.com"),
-            update_report=UpdateReport(date=datetime.datetime.now(), url= "https://g00gle.com/sos")
-        ))
+    
+    html = get_body({"domains": domains, "scan_date": datetime.datetime.now()})
 
-    html = get_body({"reports": reports})
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Id", "Suspicious Domain", "Original Domain"])
 
-    send_email("Suspicious Domains Update", html)
+    for d in domains:
+        writer.writerow([d.id, d.name, d.original_domain])
+        
+    send_email("Suspicious Domains Update", text="test", html_body=html, attachments=[('suspicious_domains.csv', output.getvalue().encode("utf-8"), 'txt', 'csv')])

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      color: #333; 
+      line-height: 1.5; 
+    }
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin: 20px 0; 
+    }
+    th, td { 
+      border: 1px solid #ddd; 
+      padding: 10px; 
+      text-align: left; 
+    }
+    th { 
+      background: #f9f9f9; 
+      font-weight: bold; 
+    }
+    .missing { 
+      color: #999; 
+      font-style: italic; 
+    }
+    h1 { 
+      color: #2c3e50; 
+    }
+    p { 
+      margin: 8px 0; 
+    }
+  </style>
+</head>
+<body>
+  <h1>Suspicious Domain Report</h1>
+
+  <p><strong>{{ results | length }} suspicious domains were detected.</strong></p>
+  <p>The discovery scan was started on {{ scan_date | datetime("%b %d, %Y %H:%M") }}.</p>
+  <p>The full list of newly detected suspicious domains is available in the attached file.</p>
+
+</body>
+</html>
