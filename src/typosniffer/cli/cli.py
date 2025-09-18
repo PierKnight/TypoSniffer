@@ -8,8 +8,7 @@ from typeguard import typechecked
 from typosniffer.cli.config import config as config_cli
 from typosniffer.cli.domain import domain
 from typosniffer.cli.discovery import discovery, clear
-from typosniffer.cli.sniff import sniff
-from typosniffer.cli.fuzzing import fuzzing
+from typosniffer.cli.tools import tools
 from typosniffer.cli.sus_domain import sus_domain
 
 
@@ -66,12 +65,10 @@ def main():
 cli.add_command(config_cli)
 cli.add_command(sus_domain)
 cli.add_command(domain)
-cli.add_command(sniff)
 cli.add_command(clear)
 cli.add_command(discovery)
-cli.add_command(fuzzing)
 cli.add_command(compare)
-
+cli.add_command(tools)
 
 
 if __name__ == "__init__":
