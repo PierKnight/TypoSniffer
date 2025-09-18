@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import whoisit
 from whoisit.errors import RateLimitedError
 from typosniffer.utils import console
+from typosniffer.utils.logger import log
 import tldextract
 import time
 
@@ -30,6 +31,8 @@ def _whoisit(domain: str):
         return whoisit.domain(domain, allow_insecure_ssl=True, follow_related=True)
 
 def find_whois(domains: list[str], requests_per_minute: int, max_workers: int):
+
+    log.info(f"Finding whois/rdap data: request per minute {requests_per_minute} and max workers: {max_workers}")
 
     whoisit.bootstrap(overrides=True)
 
@@ -64,14 +67,20 @@ def find_whois(domains: list[str], requests_per_minute: int, max_workers: int):
                 except RateLimitedError as e:
                     console.print_error(f"Failed to whois domain: {domain}, {e} retrying in the next batch")
                     domains_to_process.append(domain)
+                    log.error(e)
                 except Exception as e:
                     console.print_error(f"Failed to whois domain: {domain} retry later, {e}")
+                    log.error(e)
 
-        console.print_info(f"Processed {processed}")
+        
+        console.print_info(f"retrieved {processed} whois data")
         #wait for one minute if there are still domains to be processed
         if len(domains_to_process) > 0:
+            log.info(f"Waiting 60 seconds for next batch")
             with console.status("Waiting for next batch of whoip"):
                 time.sleep(60)
+        
+        log.info(f"whois complete")
         
     return results
 

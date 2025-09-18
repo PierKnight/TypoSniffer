@@ -9,6 +9,7 @@ from typosniffer.data.dto import SniffCriteria
 from typosniffer.sniffing import fuzzer
 from typosniffer.sniffing import tf_idf
 from typosniffer.utils import console
+from typosniffer.utils.logger import log
 from dns import resolver
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 import textdistance
@@ -121,8 +122,10 @@ def search_dns(domain: DomainDTO, tld_dictionary: list[str], word_dictionary: li
                     pass
                 except exception.Timeout as e:
                     console.print_error(f"[bold red]Timeout with dns query: {domain}, {e}[/bold red]")
+                    log.error(e)
                 except exception.DNSException as e:
                     console.print_error(f"[bold red]Something went wrong with dns query: {domain}, {e}[/bold red]")
+                    log.error(e)
                 finally:
                     progress.update(task, advance=1)
                 
@@ -145,6 +148,9 @@ def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria, ma
     Given a file, it will read every domain in them and perform checks for similarities with a domain/domains
     """
 
+
+    log.info(f"Sniffing file {file}")
+
     with open(file, "r") as f:
         domains_to_scan = [line.strip() for line in f.readlines()]
 
@@ -155,11 +161,17 @@ def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria, ma
 
     results = set()
 
+    processed_chunks = 0
+
     for future in futures:
         try:
             results.update(future.result())
-        except Exception:
-            console.console.print_exception()
+            processed_chunks += 1
+            log.info(f"sniffed chunk {processed_chunks}/{max_workers}")
+        except Exception as e:
+            log.error(e)
+
+    log.info(f"sniffed a total of {len(domains_to_scan)} domains")
     
     return results
 

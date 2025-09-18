@@ -1,13 +1,14 @@
+from typosniffer.utils.logger import log
+import logging
 import click
 from rich.table import Table
 from pydantic import ValidationError
-from typosniffer.cli.test import compare
 from typosniffer.utils import console
 from typosniffer.config import config
 from typeguard import typechecked
 from typosniffer.cli.config import config as config_cli
 from typosniffer.cli.domain import domain
-from typosniffer.cli.discovery import discovery, clear
+from typosniffer.cli.discovery import discovery
 from typosniffer.cli.tools import tools
 from typosniffer.cli.sus_domain import sus_domain
 
@@ -39,9 +40,14 @@ By Pierluigi Altimari
 @click.option("-v", "--verbose", is_flag=True)
 @typechecked
 def cli(verbose: bool):
+
+    if verbose:
+        log.setLevel(logging.DEBUG)
+
     print_banner()
 
 def main():
+
     try:
         config.load()
         cli()
@@ -59,15 +65,14 @@ def main():
         console.print_info(table)
     except Exception:
         console.console.print_exception()
+        log.error('Generic Error in Cli', exc_info=True)
         return None
 
 
 cli.add_command(config_cli)
 cli.add_command(sus_domain)
 cli.add_command(domain)
-cli.add_command(clear)
 cli.add_command(discovery)
-cli.add_command(compare)
 cli.add_command(tools)
 
 

@@ -21,7 +21,7 @@ def clear(days: int):
 def discovery(
     force: bool
 ):  
-    """"Discover and save new suspicious domains by scanning whoisds.com latest registered domains"""
+    """Discover and save new suspicious domains by scanning whoisds.com latest registered domains"""
     domains = domain.get_domains()
 
     cfg = get_config().discovery

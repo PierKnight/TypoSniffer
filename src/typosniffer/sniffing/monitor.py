@@ -13,6 +13,7 @@ from typosniffer.data.tables import WebsiteRecord
 from typosniffer.service import website_record
 from typosniffer.sniffing import cnn
 from typosniffer.utils import console, request
+from typosniffer.utils.logger import log
 from typosniffer.utils.utility import expand_and_create_dir
 from PIL import Image
 import imagehash
@@ -90,7 +91,7 @@ def get_screenshot(domain: str) -> Optional[ScreenShotInfo]:
 
         return ScreenShotInfo(Image.open(image_file, formats=['png']), url)
     except WebDriverException as e:
-        pass
+        log.error(e)
 
     return None
     
@@ -238,13 +239,16 @@ def inspect_domains(domains: list[SuspiciousDomainDTO], max_workers: int = 4) ->
                 report = future.result()
                 if report.update_report:
                     reports.append(report)
-            except WebDriverException:
+            except WebDriverException as e:
                 console.print_error(error_msg=f"Failed to retrieve: {domain}")
-            except TimeoutException:
+                log.error(e)
+            except TimeoutException as e:
                 console.print_error(suspicious_domain=domain, error_msg=f"Website took too much time to load: {domain}")
-            except Exception:
+                log.error(e)
+            except Exception as e:
                 console.print_error(suspicious_domain=domain, error_msg=f"Failed to inspect domain, generic error: {domain}")
                 console.console.print_exception()
+                log.error(e) 
                 
     return reports
 
