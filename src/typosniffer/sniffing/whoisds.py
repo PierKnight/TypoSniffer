@@ -6,6 +6,7 @@ from pathlib import Path
 from typosniffer.data.dto import DomainDTO
 import typosniffer.data.dto
 from typosniffer.utils import request
+from typosniffer.utils.logger import log
 from typosniffer.config import config
 from typosniffer.utils.console import console
 from typosniffer.sniffing import sniffer
@@ -35,11 +36,18 @@ def _get_whoisds_zip(file: WhoIsDsFile) -> bool:
 
     date_string = file.date
 
+    log.info(f"retrieving whoisds domain file {file.path}")
+
     if file.path.is_file():
+        log.info(f"file already present skipping")
         return False
+    
 
     base64_date_zip = base64.b64encode(f"{date_string}.zip".encode("utf-8")).decode("utf-8")
     url = f"https://www.whoisds.com//whois-database/newly-registered-domains/{base64_date_zip}/nrd"
+
+    log.info(f"Downloading domain file {url}")
+
     response = request.get(url)
 
     zip_file = ZipFile(BytesIO(response.content))
@@ -48,6 +56,8 @@ def _get_whoisds_zip(file: WhoIsDsFile) -> bool:
          # read in chunks to avoid loading entire file into memory
         for chunk in iter(lambda: src.read(4096), b""):
             dst.write(chunk)
+
+    log.info(f"Downloaded domain file {url}")
 
     return True
         
@@ -61,6 +71,8 @@ def clear_old_domains(max_days: int = 30) -> int:
     Returns:
         int: Number of files deleted.
     """
+
+    log.info(f"Start cleaning old whoisds files: {max_days} max days")
 
     os.makedirs(WHOISDS_FOLDER, exist_ok=True)
 
@@ -79,6 +91,9 @@ def clear_old_domains(max_days: int = 30) -> int:
                 total_cleaned += 1
         except ValueError:
             pass
+
+    log.info(f"Removed {total_cleaned} files")
+    
     return total_cleaned
 
 
@@ -88,6 +103,8 @@ def update_domains(update_days : int = 10, max_workers: int = 10) -> list[WhoIsD
         returns the list of updated file dates.
     """
     os.makedirs(WHOISDS_FOLDER, exist_ok=True)
+
+    log.info(f"updating last {update_days} days using {max_workers} workers")
 
     total_updated = []
     today = datetime.today()
@@ -103,9 +120,13 @@ def update_domains(update_days : int = 10, max_workers: int = 10) -> list[WhoIsD
         ) as progress:
             task = progress.add_task("[green]Updating domains file...", total=update_days)
             for i in range(0, update_days):
+
+
                 date = today - timedelta(days=i+1)
                 file = WhoIsDsFile(date)
                 future_to_file[executor.submit(_get_whoisds_zip, file)] = file
+
+                log.debug(f"Updating whoisds file date {file.date}")
                 
             for future in as_completed(future_to_file):
                 file = future_to_file[future]
@@ -114,9 +135,12 @@ def update_domains(update_days : int = 10, max_workers: int = 10) -> list[WhoIsD
                     if updated:
                         total_updated.append(file)
                 except Exception as e:
+                    log.error(e)
                     console.print(f"[bold red]Failed to retrieve domain file: {date}, {e}[/bold red]") 
                 finally:
                     progress.update(task, advance=1)
+    
+    log.info(f"Updated {len(total_updated)} files")
     console.print(f"[bold green]{len(total_updated)} Domain File have been updated[/bold green]")
 
     return total_updated
@@ -128,6 +152,7 @@ def sniff_whoisds(domains: list[DomainDTO], whoisds_files: list[WhoIsDsFile], cr
 
     results = set()
 
+    log.info(f"Sniffing domain files with criteria {criteria}")
 
     with Progress(
         SpinnerColumn(),
@@ -149,7 +174,7 @@ def sniff_whoisds(domains: list[DomainDTO], whoisds_files: list[WhoIsDsFile], cr
         
         console.print(f"[bold green]Found {total_files} domain file/s![/bold green]")
 
-        
+    log.info(f"domain sniffing complete")
     console.print("[bold green]Domain Sniffing completed![/bold green]")
 
     if len(results) > 0:

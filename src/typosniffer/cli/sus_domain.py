@@ -9,6 +9,7 @@ from typosniffer.service import suspicious_domain
 from typosniffer.sniffing import notification
 from typosniffer.sniffing.monitor import inspect_domains
 from typosniffer.utils import console
+from typosniffer.utils.logger import log
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 @click.group()
@@ -47,7 +48,7 @@ def inspect():
     notification.notify_inspection_suspicious_domains(inspection_date=start_date, reports=reports, suspicious_domains=domains)
 
 
-def test():
+def _monitor_task():
     #run discovery command
     ctx = click.Context(discovery.discovery)
     ctx.forward(discovery.discovery, force=False)
@@ -65,8 +66,9 @@ def monitor(hour: str, minute: str):
     scheduler = BlockingScheduler()
 
     try:
-        scheduler.add_job(test, 'cron', hour=hour, minute=minute)
+        scheduler.add_job(_monitor_task, 'cron', hour=hour, minute=minute)
         console.print_info("Press Ctrl+{} to exit".format("Break" if os.name == "nt" else "C"))
         scheduler.start()
     except ValueError as e:
-        console.print_error(e) 
+        console.print_error(e)
+        log.error(e) 
