@@ -27,6 +27,7 @@ dependencies = [
     "torchvision (>=0.23.0,<0.24.0)",
     "jinja2 (>=3.1.6,<4.0.0)",
     "numpy (>=2.3.3,<3.0.0)",
+    "apscheduler (>=3.11.0,<4.0.0)",
 ]
 
 [tool.poetry]

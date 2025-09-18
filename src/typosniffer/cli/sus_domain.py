@@ -1,13 +1,15 @@
 
 
 from datetime import datetime
+import os
 import click
+from typosniffer.cli import discovery
 from typosniffer.config.config import get_config
 from typosniffer.service import suspicious_domain
 from typosniffer.sniffing import notification
 from typosniffer.sniffing.monitor import inspect_domains
 from typosniffer.utils import console
-
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 @click.group()
 def sus_domain():
@@ -43,5 +45,28 @@ def inspect():
 
         
     notification.notify_inspection_suspicious_domains(inspection_date=start_date, reports=reports, suspicious_domains=domains)
+
+
+def test():
+    #run discovery command
+    ctx = click.Context(discovery.discovery)
+    ctx.forward(discovery.discovery, force=False)
+
+    #run inspect command
+    ctx = click.Context(inspect)
+    ctx.forward(inspect)
             
-            
+@sus_domain.command()
+@click.argument('hour')
+@click.argument('minute')
+def monitor(hour: str, minute: str):
+    """Every Day Monitor suspicious domains by calling the discovery and inspection step"""
+
+    scheduler = BlockingScheduler()
+
+    try:
+        scheduler.add_job(test, 'cron', hour=hour, minute=minute)
+        console.print_info("Press Ctrl+{} to exit".format("Break" if os.name == "nt" else "C"))
+        scheduler.start()
+    except ValueError as e:
+        console.print_error(e) 
