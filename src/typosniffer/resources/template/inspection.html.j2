@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      color: #333; 
+      line-height: 1.5; 
+    }
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin: 20px 0; 
+    }
+    th, td { 
+      border: 1px solid #ddd; 
+      padding: 10px; 
+      text-align: left; 
+    }
+    th { 
+      background: #f9f9f9; 
+      font-weight: bold; 
+    }
+    .missing { 
+      color: #999; 
+      font-style: italic; 
+    }
+    h1 { 
+      color: #2c3e50; 
+    }
+    p { 
+      margin: 8px 0; 
+    }
+  </style>
+</head>
+<body>
+  <h1>Suspicious Domain Inspection Report</h1>
+
+  <p><strong>{{ suspicious_domains | length }} suspicious domains were inspected.</strong></p>
+  <p>The discovery scan was started on {{ date | datetime("%b %d, %Y %H:%M") }}.</p>
+  <p>{{ reports | length }} suspicious domains had a website change</p>
+
+  {% if reports %}
+    <p>The full list of website changes is available in the attached file.</p>
+  {% endif %}
+</body>
+</html>

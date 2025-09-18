@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, Enum, ForeignKey, String, Table, UniqueConstraint,DateTime, ARRAY, Boolean
+from sqlalchemy import Column, Integer, Enum as SqlEnum, ForeignKey, String, Table, UniqueConstraint,DateTime, ARRAY, Boolean
 from sqlalchemy.orm import relationship, declarative_base
 
 from typosniffer.data.dto import EntityType
+from typosniffer.data.dto import WebsiteStatus
 
 
 
@@ -52,7 +53,7 @@ class Entity(Base):
 
     id = Column(Integer, primary_key=True)
 
-    type = Column(Enum(EntityType), nullable=False)
+    type = Column(SqlEnum(EntityType), nullable=False)
 
     url = Column(String(100), nullable=False, default='')
     name = Column(String(100), nullable=False, default='')
@@ -80,7 +81,7 @@ class WebsiteRecord(Base):
     website_url = Column(String, nullable=True)  
     screenshot_hash = Column(String(16), nullable=True)
     creation_date = Column(DateTime, nullable=False, index=True)
-    website_exists = Column(Boolean, nullable=False)
+    status: WebsiteStatus = Column(SqlEnum(WebsiteStatus), nullable=False)
 
 
     
