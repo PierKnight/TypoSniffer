@@ -3,8 +3,9 @@ from datetime import datetime, timedelta
 import click
 from typosniffer.config.config import get_config
 from typosniffer.service import domain, suspicious_domain
-from typosniffer.sniffing import whoisds, whoisfinder
+from typosniffer.sniffing import notification, whoisds, whoisfinder
 from typosniffer.utils import console
+
 
 
 @click.command(help = "Clear old whoisds domains")
@@ -24,6 +25,8 @@ def discovery(
     domains = domain.get_domains()
 
     cfg = get_config().discovery
+
+    start_date = datetime.now()
 
 
     if len(domains) == 0:
@@ -53,11 +56,13 @@ def discovery(
 
         #sniff new updated files to find typo squatting
         sniff_result = whoisds.sniff_whoisds(domains, criteria=criteria, whoisds_files=domains_files, max_workers=cfg.discovery_workers)
-                
+        
         #given the list of suspicious domains retrieve their respective whois data
         with console.status("[bold green]Retrieving whois data[/bold green]"):
             whois_data = whoisfinder.find_whois([sniff.domain for sniff in sniff_result], max_workers=cfg.whois_workers, requests_per_minute=cfg.requests_per_minute)
         with console.status("[bold green]Updating Suspicious Domains List[/bold green]"):
             suspicious_domain.add_suspicious_domain(sniff_result, whois_data)
+
+        notification.notify_new_suspicious_domains(start_date, list(sniff_result))
     else:
         console.print_info("Force a new scan by using: --force")

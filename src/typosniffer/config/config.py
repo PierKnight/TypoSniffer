@@ -20,7 +20,7 @@ class EmailConfig(BaseModel):
     receiver_email: EmailStr
     starttls: bool
 
-    template: FilePath = get_resource('email.html.j2')
+    template: FilePath = get_resource('template/email.html.j2')
 
 
 #configuration used in the discovery step

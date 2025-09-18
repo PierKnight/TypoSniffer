@@ -184,7 +184,7 @@ def scan_domain(domain: SuspiciousDomainDTO, screenshot_data: DomainScreenshotBu
     )
 
 
-def inspect_domains(domains: list[SuspiciousDomainDTO], max_workers: int = 4):
+def inspect_domains(domains: list[SuspiciousDomainDTO], max_workers: int = 4) -> list[DomainReport]:
 
 
     image_comparator = cnn.ImageComparator()
@@ -192,6 +192,8 @@ def inspect_domains(domains: list[SuspiciousDomainDTO], max_workers: int = 4):
     original_domains = set([domain.original_domain for domain in domains])
 
     screenshot_data = DomainScreenshotBucket(len(original_domains))
+
+    reports 
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
    
