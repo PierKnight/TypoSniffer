@@ -17,6 +17,15 @@ def sus_domain():
 
 
 @sus_domain.command()
+@click.argument('domains', nargs=-1)
+def remove(domains: list[str]):
+    """Remove a suspicious domain domain"""
+
+    with console.status("[bold green]Removing domains[/bold green]"):
+        removed = suspicious_domain.remove_suspicious_domain(domains)
+        console.print_info(f"Removed {removed} suspicious domains")
+
+@sus_domain.command()
 def inspect():
 
     with console.status("Retrieving suspicious domain list"):
@@ -32,7 +41,7 @@ def inspect():
 
     with console.status("Inspecting suspicious domains"):
         domains = suspicious_domain.get_suspicious_domains()
-        reports = inspect_domains(domains, cfg.monitor.max_workers)
+        reports = inspect_domains(domains, cfg.inspection.max_workers)
 
         for report in reports:
             domain = report.suspicious_domain

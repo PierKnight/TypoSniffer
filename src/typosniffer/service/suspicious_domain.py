@@ -3,14 +3,37 @@ from sqlalchemy.orm import Session
 from typosniffer.data.database import DB
 from typosniffer.data.dto import EntityType, SuspiciousDomainDTO
 from typosniffer.data.tables import Domain, Entity, SuspiciousDomain
+from typosniffer.service import website_record
 from typosniffer.sniffing.sniffer import SniffResult
 from typosniffer.utils.exceptions import ServiceFailure
 from typosniffer.utils.logger import log
-from sqlalchemy.orm import joinedload
 
+
+def get_suspicious_domains() -> list[SuspiciousDomainDTO]:
+
+    with DB.get_session() as session:
+        
+        suspicious_domains = session.query(SuspiciousDomain).all()
+
+        return [SuspiciousDomainDTO(id = sd.id, name = sd.name, original_domain=sd.original_domain.name) for sd in suspicious_domains]
+
+        
 def delete_entity_orphan(session: Session):
     """Delete all the entities without any suspicious domains"""
     session.query(Entity).filter(~Entity.suspicious_domains.any()).delete(synchronize_session=False)
+
+
+def remove_suspicious_domain(suspicious_domains: list[str]) -> int:
+
+
+    with DB.get_session() as session, session.begin():
+
+        website_record.remove_records_screenshot(website_record.get_suspicious_domain_records(suspicious_domains))
+        deleted_count = session.query(SuspiciousDomain).filter(SuspiciousDomain.name.in_(suspicious_domains)).delete()
+        delete_entity_orphan(session)
+
+    return deleted_count
+
 
 def _get_or_create_entity(session: Session, entity_type: EntityType, entity_data: dict) -> Entity:
     """create or get a domain entity based on a dictionary containing the relevant data"""
@@ -47,17 +70,17 @@ def create_suspicious_domain(
     suspicious_domain: SuspiciousDomain,
     entities: list[Entity] | None = None, 
 ) -> SuspiciousDomain:
-    """Create a new suspicious domain in the database"""
-    
-    log.debug(f"Creating new suspicious domain: {suspicious_domain}")
+    """Create or get a SuspiciousDomain and attach entities"""
+    log.debug(f"Creating new suspicious domain: {suspicious_domain.name}")
+
+
+    entities = entities or []
 
     # Get original domain
     original_domain = session.query(Domain).filter_by(name=original_domain_name).first()
-
     if original_domain is None:
         raise ServiceFailure(f"Original domain '{original_domain_name}' not found")
     
-    log.debug(f"Original domain found: id: {original_domain.id} name: {original_domain.name}")
     # Check if suspicious domain already exists
     suspicious = (
         session.query(SuspiciousDomain)
@@ -66,21 +89,21 @@ def create_suspicious_domain(
     )
 
     if suspicious is None:
-        # Add suspicious domain to session BEFORE setting relationships
+        # Assign original domain and entities at creation
+        suspicious_domain.original_domain = original_domain
+        suspicious_domain.entities = entities
+        session.add(suspicious_domain)
         suspicious = suspicious_domain
-        suspicious.original_domain = original_domain
-        session.add(suspicious)
-        session.flush() 
         log.debug(f"Added new suspicious domain: {suspicious}")
     else:
+        # Add any new entities that are not already linked
+        for entity in entities:
+            if entity not in suspicious.entities:
+                suspicious.entities.append(entity)
         log.debug(f"Suspicious domain already persisted: {suspicious}")
 
-    # Link entities (existing or new)
-    for entity in entities:
-        if entity not in suspicious.entities:
-            suspicious.entities.append(entity)
-
     return suspicious
+
 
 
 
@@ -126,17 +149,6 @@ def add_suspicious_domain(sniff_results: set[SniffResult], whois_data: dict):
                 )
             )
             log.debug(f"End {result.domain} persistance")
-
-def get_suspicious_domains() -> list[SuspiciousDomainDTO]:
-
-    with DB.get_session() as session:
-        
-        suspicious_domains = session.query(SuspiciousDomain).options(
-            joinedload(SuspiciousDomain.original_domain)
-        ).all()
-
-        return [SuspiciousDomainDTO(id = sd.id, name = sd.name, original_domain=sd.original_domain.name) for sd in suspicious_domains]
-
 
 
 
