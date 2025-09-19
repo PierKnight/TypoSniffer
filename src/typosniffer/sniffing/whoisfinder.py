@@ -1,7 +1,9 @@
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import datetime
+import whois
 import whoisit
-from whoisit.errors import RateLimitedError
+from whoisit.errors import RateLimitedError, UnsupportedError
 from typosniffer.utils import console
 from typosniffer.utils.logger import log
 import tldextract
@@ -24,11 +26,58 @@ def _collect_whois_domains(domains, requests_per_minute: int):
 
         return dict(queries_per_tld), remaining_domains
 
+def _whois(domain: str):
+        
+    def parse_date(date):
+
+        if isinstance(date, list):
+            return parse_date(date[0])
+        elif isinstance(date, datetime.datetime):
+            return date
+
+        return datetime.datetime.strptime(date, "%Y-%m-%d %H:%M:%S") if date else None
+    
+    def parse_status(status):
+        if isinstance(status, list):
+            return status
+        return [status]
+
+
+    whois_data = whois.whois(domain)
+
+    dnssec_val = whois_data.get("dnssec")
+    if dnssec_val is None:
+        dnssec = None
+    elif dnssec_val == "unsigned":
+        dnssec = False
+    else:
+        dnssec = dnssec_val
+
+    return {
+        "nameservers": whois_data.get("name_servers"),
+        "whois_server": whois_data.get("whois_server"),
+        "status": parse_status(whois_data.get("status")),
+        "creation_date": parse_date(whois_data.get("creation_date")),
+        "updated_date": parse_date(whois_data.get("updated_date")),
+        "expiration_date": parse_date(whois_data.get("expiration_date")),
+        "dnssec": dnssec,
+    }
+
 def _whoisit(domain: str):
+
+    log.debug(f"Retrive whois data of {domain} domain")
+
     try:
-        return whoisit.domain(domain, allow_insecure_ssl=True, follow_related=False)
-    except RateLimitedError as e:
-        return whoisit.domain(domain, allow_insecure_ssl=True, follow_related=True)
+        try:
+            log.debug(f"use rdap protocol on {domain} with follow related disabled")
+            return whoisit.domain(domain, allow_insecure_ssl=True, follow_related=False)
+        except RateLimitedError:
+            log.debug(f"use rdap protocol on {domain} with follow related enabled")
+            return whoisit.domain(domain, allow_insecure_ssl=True, follow_related=True)
+    except UnsupportedError:
+        log.debug(f"Fallback to whois domain {domain}")
+        return _whois(domain)
+        
 
 def find_whois(domains: list[str], requests_per_minute: int, max_workers: int):
 
