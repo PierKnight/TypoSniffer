@@ -32,11 +32,11 @@ class SuspiciousDomain(Base):
     original_domain_id = Column(Integer, ForeignKey('domain.id', ondelete='CASCADE'), nullable=False)
 
 
-    whois_server = Column(String(100), nullable=False)
+    whois_server = Column(String(100), nullable=True)
     updated_date = Column(DateTime, nullable=True)
     creation_date = Column(DateTime, nullable=True)
     expiration_date = Column(DateTime, nullable=True)
-    url = Column(String(100), nullable=False)
+    url = Column(String(100), nullable=True)
 
     status = Column(ARRAY(String(50)))
     nameservers = Column(ARRAY(String(50)))

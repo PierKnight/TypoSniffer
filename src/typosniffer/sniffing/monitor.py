@@ -132,7 +132,7 @@ def compare_records(last_record: Optional[WebsiteRecord], new_record: WebsiteRec
     cfg = get_config().monitor
     
     # Check if the new website record exists
-    new_website_exist = new_record is not None
+    new_website_exist = new_record.screenshot_hash is not None
     
     # Check if the last recorded website was considered "up"
     # If there is no last record, assume it was not up
@@ -240,13 +240,13 @@ def inspect_domains(domains: list[SuspiciousDomainDTO], max_workers: int = 4) ->
                 if report.update_report:
                     reports.append(report)
             except WebDriverException:
-                console.print_error(error_msg=f"Failed to retrieve: {domain}")
+                console.print_error(f"Failed to retrieve: {domain}")
                 log.error("Webdriver fail", exc_info=True)
             except TimeoutException:
-                console.print_error(suspicious_domain=domain, error_msg=f"Website took too much time to load: {domain}")
+                console.print_error(f"Website took too much time to load: {domain}")
                 log.error("Webdriver timeout", exc_info=True)
             except Exception as e:
-                console.print_error(suspicious_domain=domain, error_msg=f"Failed to inspect domain, generic error: {domain}")
+                console.print_error(f"Failed to inspect domain, generic error: {domain}")
                 log.error(f'Error during domain scan {domain}', exc_info=True) 
                 
     return reports

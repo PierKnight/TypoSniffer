@@ -37,7 +37,7 @@ def notify_inspection_suspicious_domains(inspection_date: datetime, suspicious_d
         
             website_url = report.update_report.url if report.update_report else None
             status = report.update_report.status.name if report.update_report else None
-            similarity = report.phishing_report.hash_similarity if report.phishing_report else None
+            similarity = report.phishing_report.hash_similarity if report.phishing_report else -1
             writer.writerow([report.suspicious_domain.name, website_url, status, f"{similarity:.1f}"])
     
     attachments = []

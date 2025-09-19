@@ -2,10 +2,14 @@ from pathlib import Path
 from PIL import Image
 import click
 import imagehash
+import whois
 from typosniffer.sniffing import cnn
 
+@click.group
+def test():
+    pass
 
-@click.command
+@test.command
 @click.argument("file1", type=click.Path(file_okay=True))
 @click.argument("file2", type=click.Path(file_okay=True))
 def compare(file1: Path, file2: Path):
@@ -27,3 +31,7 @@ def compare(file1: Path, file2: Path):
     print(f"JUST HASH {hash2 - hash1}")
     print(f"SIMILARITY HASH {1 - (hash2 - hash1) / (size)**2}")
     print(f"SIMILARITY CNN {cnn_comparator.get_similarity(image1, image2)}")
+
+@test.command()
+def who():
+    print(whois.whois('gooogle.su'))

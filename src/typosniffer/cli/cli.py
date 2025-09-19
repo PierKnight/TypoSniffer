@@ -11,6 +11,7 @@ from typosniffer.cli.domain import domain
 from typosniffer.cli.discovery import discovery
 from typosniffer.cli.tools import tools
 from typosniffer.cli.sus_domain import sus_domain
+from typosniffer.cli.test import test
 
 
 def print_banner():
@@ -74,6 +75,7 @@ cli.add_command(sus_domain)
 cli.add_command(domain)
 cli.add_command(discovery)
 cli.add_command(tools)
+cli.add_command(test)
 
 
 if __name__ == "__init__":

@@ -9,7 +9,6 @@ from typosniffer.service import suspicious_domain
 from typosniffer.sniffing import notification
 from typosniffer.sniffing.monitor import inspect_domains
 from typosniffer.utils import console
-from typosniffer.utils.logger import log
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 @click.group()
@@ -24,7 +23,7 @@ def inspect():
         domains = suspicious_domain.get_suspicious_domains()
 
     if len(domains) == 0:
-        console.print_info("No suspicious domains have been found: use 'typosniffer scan' to update the list")
+        console.print_info("No suspicious domains have been found: use 'typosniffer discovery' to update the list")
         return
 
     cfg = get_config()
