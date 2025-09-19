@@ -1,5 +1,6 @@
+from typing import List
 from sqlalchemy import Column, Integer, Enum as SqlEnum, ForeignKey, String, Table, UniqueConstraint,DateTime, ARRAY, Boolean
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.orm import relationship, declarative_base, Mapped
 
 from typosniffer.data.dto import EntityType
 from typosniffer.data.dto import WebsiteStatus
@@ -13,7 +14,7 @@ class Domain(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False, unique=True)
-    suspicious_domains = relationship("SuspiciousDomain", backref='original_domain', cascade='all, delete-orphan, delete', passive_deletes=True)
+    suspicious_domains: Mapped[List["SuspiciousDomain"]] = relationship("SuspiciousDomain", back_populates="original_domain", cascade='all, delete-orphan, delete')
 
 
 suspicious_domain_entity = Table(
@@ -42,8 +43,9 @@ class SuspiciousDomain(Base):
     nameservers = Column(ARRAY(String(50)))
     dnssec= Column(Boolean())
 
-    entities = relationship("Entity", secondary=suspicious_domain_entity, back_populates="suspicious_domains")
-    records = relationship("WebsiteRecord", backref='suspicious_domain', cascade='all, delete-orphan, delete', passive_deletes=True)
+    entities: Mapped[List["Entity"]] = relationship("Entity", secondary=suspicious_domain_entity, back_populates="suspicious_domains")
+    records: Mapped[List["WebsiteRecord"]] = relationship("WebsiteRecord", back_populates='suspicious_domain', cascade='all, delete-orphan, delete')
+    original_domain: Mapped["Domain"] = relationship("Domain",back_populates="suspicious_domains",lazy="joined")
 
 
 
@@ -70,7 +72,7 @@ class Entity(Base):
         UniqueConstraint('name', 'type', 'url', name='uix_entity_type'),
     )
 
-    suspicious_domains = relationship("SuspiciousDomain", secondary=suspicious_domain_entity, back_populates="entities")
+    suspicious_domains: Mapped[List["SuspiciousDomain"]] = relationship("SuspiciousDomain", secondary=suspicious_domain_entity, back_populates="entities")
 
 class WebsiteRecord(Base):
     __tablename__ = "website_record"
@@ -82,6 +84,8 @@ class WebsiteRecord(Base):
     screenshot_hash = Column(String(16), nullable=True)
     creation_date = Column(DateTime, nullable=False, index=True)
     status: WebsiteStatus = Column(SqlEnum(WebsiteStatus), nullable=False)
+
+    suspicious_domain: Mapped["SuspiciousDomain"] = relationship("SuspiciousDomain", back_populates="records")
 
 
     

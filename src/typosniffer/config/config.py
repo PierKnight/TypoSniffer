@@ -51,7 +51,7 @@ class AppConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     discovery: DiscoveryConfig = DiscoveryConfig()
-    monitor: MonitorConfig = MonitorConfig()
+    inspection: MonitorConfig = MonitorConfig()
     email: Optional[EmailConfig] = None
 
 

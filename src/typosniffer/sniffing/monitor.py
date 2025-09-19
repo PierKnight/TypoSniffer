@@ -64,18 +64,7 @@ class DomainScreenshotBucket:
             if not image:
                 image = get_screenshot(domain)
                 self.images[domain] = image
-            return image 
-
-
-
-        
-        
-def get_screenshot_from_file(domain: SuspiciousDomainDTO, date: datetime) -> Image.Image:
-
-    timestamp = date.strftime("%Y%m%d_%H%M%S")
-    image_file = get_config().monitor.screenshot_dir / domain.name / f"{timestamp}.png"
-    return Image.open(image_file)
-    
+            return image         
 
 def get_screenshot(domain: str) -> Optional[ScreenShotInfo]:
 
@@ -83,7 +72,7 @@ def get_screenshot(domain: str) -> Optional[ScreenShotInfo]:
     try:
         url = request.resolve_url(domain)
 
-        browser = request.Browser(url, timeout=get_config().monitor.page_load_timeout)
+        browser = request.Browser(url, timeout=get_config().inspection.page_load_timeout)
 
         image_bytes, url = browser.screenshot()
         
@@ -96,12 +85,11 @@ def get_screenshot(domain: str) -> Optional[ScreenShotInfo]:
     return None
     
 
-
 def save_screenshot(date: datetime, domain: SuspiciousDomainDTO, screenshot: ScreenShotInfo) -> Path:
 
     timestamp = date.strftime("%Y%m%d_%H%M%S")
 
-    domain_folder = get_config().monitor.screenshot_dir / domain.name
+    domain_folder = get_config().inspection.screenshot_dir / domain.name
 
     expand_and_create_dir(domain_folder)
 
@@ -129,7 +117,7 @@ def compare_records(last_record: Optional[WebsiteRecord], new_record: WebsiteRec
     """
 
     # Load monitoring configuration (e.g., hash threshold for detecting changes)
-    cfg = get_config().monitor
+    cfg = get_config().inspection
     
     # Check if the new website record exists
     new_website_exist = new_record.screenshot_hash is not None

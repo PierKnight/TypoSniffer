@@ -4,7 +4,7 @@ from typosniffer.data.database import DB
 from typosniffer.data.dto import DomainDTO, dto_to_orm
 from typosniffer.data.dto import orm_to_dto
 from typosniffer.data.tables import Domain
-from typosniffer.service.suspicious_domain import delete_entity_orphan
+from typosniffer.service import suspicious_domain, website_record
 from typosniffer.utils.exceptions import ServiceFailure
 
 
@@ -45,9 +45,9 @@ def remove_domains(domains: list[DomainDTO]):
 
     with DB.get_session() as session, session.begin():
         
+        website_record.remove_records_screenshot(suspicious_domain.get_suspicious_domains(session, domain_names))
         deleted_count = session.query(Domain).filter(Domain.name.in_(domain_names)).delete()
-        delete_entity_orphan(session)
-        session.commit()
+        suspicious_domain.delete_entity_orphan(session)
         
     return deleted_count
 
@@ -55,5 +55,6 @@ def clear_domains():
     
     with DB.get_session() as session, session.begin():
         session.query(Domain).delete()
-        delete_entity_orphan(session)
-        session.commit()
+        suspicious_domain.delete_entity_orphan(session)
+        website_record.remove_all_screenshots()
+
