@@ -71,4 +71,3 @@ def monitor(hour: str, minute: str):
         scheduler.start()
     except ValueError as e:
         console.print_error(e)
-        log.error(e) 

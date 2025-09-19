@@ -129,13 +129,13 @@ def update_domains(update_days : int = 10, max_workers: int = 10) -> list[WhoIsD
                 log.debug(f"Updating whoisds file date {file.date}")
                 
             for future in as_completed(future_to_file):
-                file = future_to_file[future]
+                file: WhoIsDsFile = future_to_file[future]
                 try:
                     updated = future.result()
                     if updated:
                         total_updated.append(file)
                 except Exception as e:
-                    log.error(e)
+                    log.error(f"Failed to retrieve file {file.path}", exc_info=True)
                     console.print(f"[bold red]Failed to retrieve domain file: {date}, {e}[/bold red]") 
                 finally:
                     progress.update(task, advance=1)
