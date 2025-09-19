@@ -67,10 +67,10 @@ def find_whois(domains: list[str], requests_per_minute: int, max_workers: int):
                 except RateLimitedError as e:
                     console.print_error(f"Failed to whois domain: {domain}, {e} retrying in the next batch")
                     domains_to_process.append(domain)
-                    log.error(e)
+                    log.error("Rate limited whois query", exc_info=True)
                 except Exception as e:
-                    console.print_error(f"Failed to whois domain: {domain} retry later, {e}")
-                    log.error(e)
+                    console.print_error(f"Failed query to whois domain: {domain} retry later, {e}")
+                    log.error("Failed query to whois query", exc_info=True)
 
         
         console.print_info(f"retrieved {processed} whois data")

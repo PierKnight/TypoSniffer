@@ -90,8 +90,8 @@ def get_screenshot(domain: str) -> Optional[ScreenShotInfo]:
         image_file = io.BytesIO(image_bytes)
 
         return ScreenShotInfo(Image.open(image_file, formats=['png']), url)
-    except WebDriverException as e:
-        log.error(e)
+    except WebDriverException:
+        log.error(f"failed getting {domain} screenshot", exc_info=True)
 
     return None
     
@@ -239,16 +239,15 @@ def inspect_domains(domains: list[SuspiciousDomainDTO], max_workers: int = 4) ->
                 report = future.result()
                 if report.update_report:
                     reports.append(report)
-            except WebDriverException as e:
+            except WebDriverException:
                 console.print_error(error_msg=f"Failed to retrieve: {domain}")
-                log.error(e)
-            except TimeoutException as e:
+                log.error("Webdriver fail", exc_info=True)
+            except TimeoutException:
                 console.print_error(suspicious_domain=domain, error_msg=f"Website took too much time to load: {domain}")
-                log.error(e)
+                log.error("Webdriver timeout", exc_info=True)
             except Exception as e:
                 console.print_error(suspicious_domain=domain, error_msg=f"Failed to inspect domain, generic error: {domain}")
-                console.console.print_exception()
-                log.error(e) 
+                log.error(f'Error during domain scan {domain}', exc_info=True) 
                 
     return reports
 

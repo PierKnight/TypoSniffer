@@ -122,10 +122,10 @@ def search_dns(domain: DomainDTO, tld_dictionary: list[str], word_dictionary: li
                     pass
                 except exception.Timeout as e:
                     console.print_error(f"[bold red]Timeout with dns query: {domain}, {e}[/bold red]")
-                    log.error(e)
+                    log.error("Dns Query Timeout", exc_info=True)
                 except exception.DNSException as e:
                     console.print_error(f"[bold red]Something went wrong with dns query: {domain}, {e}[/bold red]")
-                    log.error(e)
+                    log.error(f"Dns Query Exception: {domain}", exc_info=True)
                 finally:
                     progress.update(task, advance=1)
                 
@@ -168,8 +168,8 @@ def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria, ma
             results.update(future.result())
             processed_chunks += 1
             log.info(f"sniffed chunk {processed_chunks}/{max_workers}")
-        except Exception as e:
-            log.error(e)
+        except Exception:
+            log.error(f"Failed scanning chunk of domain {file}", exc_info=True)
 
     log.info(f"sniffed a total of {len(domains_to_scan)} domains")
     
