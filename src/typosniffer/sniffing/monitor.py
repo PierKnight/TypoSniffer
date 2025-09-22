@@ -85,15 +85,12 @@ def get_screenshot(domain: str) -> Optional[ScreenShotInfo]:
     return None
     
 
-def save_screenshot(date: datetime, domain: SuspiciousDomainDTO, screenshot: ScreenShotInfo) -> Path:
+def save_screenshot(record: WebsiteRecord, screenshot: ScreenShotInfo) -> Path:
 
-    timestamp = date.strftime("%Y%m%d_%H%M%S")
 
-    domain_folder = get_config().inspection.screenshot_dir / domain.name
+    image_file_path = website_record.get_screenshot_from_record(record)
 
-    expand_and_create_dir(domain_folder)
-
-    image_file_path = domain_folder / f"{timestamp}.png"
+    expand_and_create_dir(image_file_path.parent)
 
     screenshot.image.save(image_file_path, 'png')
     
@@ -173,7 +170,7 @@ def check_domain_updated(screenshot: Optional[ScreenShotInfo], domain: Suspiciou
             new_record.status = new_status
             session.add(new_record)
             if now_website_exists:
-                save_screenshot(date, domain, screenshot)
+                save_screenshot(new_record, screenshot)
             return UpdateReport(date=date, url=new_record.website_url, status=new_status)
 
     return None

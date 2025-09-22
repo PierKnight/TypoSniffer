@@ -45,9 +45,10 @@ def remove_domains(domains: list[DomainDTO]):
 
     with DB.get_session() as session, session.begin():
         
-        website_record.remove_records_screenshot(suspicious_domain.get_suspicious_domains(session, domain_names))
-        deleted_count = session.query(Domain).filter(Domain.name.in_(domain_names)).delete()
-        suspicious_domain.delete_entity_orphan(session)
+        to_delete = session.query(Domain).filter(Domain.name.in_(domain_names)).all()
+        deleted_count = len(to_delete)
+        for d in to_delete:
+            session.delete(d)
         
     return deleted_count
 

@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from typosniffer.data.database import DB
 from typosniffer.data.dto import EntityType, SuspiciousDomainDTO
 from typosniffer.data.tables import Domain, Entity, SuspiciousDomain
-from typosniffer.service import website_record
 from typosniffer.sniffing.sniffer import SniffResult
 from typosniffer.utils.exceptions import ServiceFailure
 from typosniffer.utils.logger import log
@@ -28,8 +27,10 @@ def remove_suspicious_domain(suspicious_domains: list[str]) -> int:
 
     with DB.get_session() as session, session.begin():
 
-        website_record.remove_records_screenshot(website_record.get_suspicious_domain_records(suspicious_domains))
-        deleted_count = session.query(SuspiciousDomain).filter(SuspiciousDomain.name.in_(suspicious_domains)).delete()
+        to_delete = session.query(SuspiciousDomain).filter(SuspiciousDomain.name.in_(suspicious_domains)).all()
+        deleted_count = len(to_delete)
+        for d in to_delete:
+            session.delete(d)
         delete_entity_orphan(session)
 
     return deleted_count
