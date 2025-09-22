@@ -57,6 +57,15 @@ def get(url, **kargs):
     response.raise_for_status()
     return response
 
+def post(url, **kargs):
+
+    headers = kargs.pop("headers", {})
+    headers.setdefault("User-Agent", USER_AGENT)
+    
+    response = requests.post(url, headers=headers, **kargs)
+    response.raise_for_status()
+    return response
+
 
 def resolve_url(domain: str) -> str:
     # If user already gave scheme, just return it
