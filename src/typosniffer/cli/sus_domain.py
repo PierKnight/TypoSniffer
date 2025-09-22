@@ -118,9 +118,6 @@ def inspect():
                 console.print_info(f"Domain {domain.name} updated: {report.update_report}")
             if report.phishing_report:
                 console.print_info(f"Domain {domain.name} phishing scan: {report.phishing_report}")
-            if report.error_msg:
-                console.print_error(report.error_msg)
-
         
     notification.notify_inspection_suspicious_domains(inspection_date=start_date, reports=reports, suspicious_domains=domains)
 
