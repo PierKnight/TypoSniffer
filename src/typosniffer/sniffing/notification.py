@@ -29,8 +29,6 @@ def notify_inspection_suspicious_domains(inspection_date: datetime, suspicious_d
     writer = csv.writer(output)
     writer.writerow(["Suspicious Domain", "Website Url", "Status", "Similary Original Website"])
     
-    rows = 0
-
     for report in reports:
         
         if report.update_report is not None:
