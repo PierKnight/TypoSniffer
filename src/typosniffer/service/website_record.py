@@ -1,5 +1,6 @@
 
 
+import datetime
 import os
 from typing import Optional
 from zipfile import Path
@@ -41,10 +42,12 @@ def suspicious_domain_records(domain: SuspiciousDomainDTO):
             .first()
         )
 
-def get_screenshot_from_record(record: WebsiteRecord) -> Path:
+def get_screenshot_from_record(record: WebsiteRecord) -> Path:  
+    return get_screenshot(record.suspicious_domain, record.creation_date)
 
-    timestamp = record.creation_date.strftime("%Y%m%d_%H%M%S")
-    image_file = get_config().inspection.screenshot_dir / record.suspicious_domain.name / f"{timestamp}.png"
+def get_screenshot(suspicious_domain: SuspiciousDomainDTO, date: datetime) -> Path:
+    timestamp = date.strftime("%Y%m%d_%H%M%S")
+    image_file = get_config().inspection.screenshot_dir / suspicious_domain.name / f"{timestamp}.png"
     return image_file
 
 def remove_record_screenshot(record: WebsiteRecord):

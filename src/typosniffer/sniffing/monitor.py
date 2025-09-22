@@ -42,7 +42,6 @@ class DomainReport:
     suspicious_domain: SuspiciousDomainDTO
     update_report: Optional[UpdateReport] = None
     phishing_report: Optional[PhishingReport] = None
-    error_msg: Optional[str] = None
 
 
 
@@ -85,10 +84,10 @@ def get_screenshot(domain: str) -> Optional[ScreenShotInfo]:
     return None
     
 
-def save_screenshot(record: WebsiteRecord, screenshot: ScreenShotInfo) -> Path:
+def save_screenshot(suspicious_domain: SuspiciousDomainDTO, date: datetime, screenshot: ScreenShotInfo) -> Path:
 
 
-    image_file_path = website_record.get_screenshot_from_record(record)
+    image_file_path = website_record.get_screenshot(suspicious_domain=suspicious_domain, date=date)
 
     expand_and_create_dir(image_file_path.parent)
 
@@ -170,7 +169,7 @@ def check_domain_updated(screenshot: Optional[ScreenShotInfo], domain: Suspiciou
             new_record.status = new_status
             session.add(new_record)
             if now_website_exists:
-                save_screenshot(new_record, screenshot)
+                save_screenshot(domain, date, screenshot)
             return UpdateReport(date=date, url=new_record.website_url, status=new_status)
 
     return None
@@ -192,7 +191,7 @@ def check_domain_phishing(real_screenshot: Optional[ScreenShotInfo], phish_scree
 
 
 def scan_domain(domain: SuspiciousDomainDTO, screenshot_data: DomainScreenshotBucket, image_comparator: cnn.ImageComparator) -> DomainReport:
-    
+
     phish_screenshot = get_screenshot(domain.name)
 
     update_report = check_domain_updated(phish_screenshot, domain)
