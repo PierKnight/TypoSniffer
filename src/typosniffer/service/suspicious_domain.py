@@ -1,22 +1,44 @@
-from sqlalchemy.orm import Session
+from typing import Optional
+from sqlalchemy.orm import Session, joinedload, with_loader_criteria
 
 from typosniffer.data.database import DB
-from typosniffer.data.dto import EntityType, SuspiciousDomainDTO
+from typosniffer.data.dto import DomainDTO, EntityType, SuspiciousDomainDTO, orm_to_dto
 from typosniffer.data.tables import Domain, Entity, SuspiciousDomain
+from typosniffer.service import website_record
 from typosniffer.sniffing.sniffer import SniffResult
 from typosniffer.utils.exceptions import ServiceFailure
 from typosniffer.utils.logger import log
 
 
-def get_suspicious_domains() -> list[SuspiciousDomainDTO]:
+def get_suspicious_domain(domain: str, types: list[EntityType]) -> Optional[SuspiciousDomain]:
+     with DB.get_session() as session, session.begin():
+        return (
+            session.query(SuspiciousDomain)
+            .options(
+                joinedload(SuspiciousDomain.entities),
+                with_loader_criteria(Entity, Entity.type.in_(types))
+            )
+            .filter(SuspiciousDomain.name == domain)
+            .first()
+        )
 
-    with DB.get_session() as session:
+def get_all_suspicious_domains() -> list[SuspiciousDomainDTO]:
+
+    with DB.get_session() as session, session.begin():
         
         suspicious_domains = session.query(SuspiciousDomain).all()
 
-        return [SuspiciousDomainDTO(id = sd.id, name = sd.name, original_domain=sd.original_domain.name) for sd in suspicious_domains]
+        return [orm_to_dto(sd, SuspiciousDomainDTO) for sd in suspicious_domains]
 
+
+def get_suspicious_domains(domain: DomainDTO) -> list[SuspiciousDomain]:
+
+    with DB.get_session() as session, session.begin():
         
+        suspicious_domains = session.query(SuspiciousDomain).join(SuspiciousDomain.original_domain).filter(Domain.name == domain.name).all()
+        return suspicious_domains
+
+
 def delete_entity_orphan(session: Session):
     """Delete all the entities without any suspicious domains"""
     session.query(Entity).filter(~Entity.suspicious_domains.any()).delete(synchronize_session=False)
@@ -34,6 +56,14 @@ def remove_suspicious_domain(suspicious_domains: list[str]) -> int:
         delete_entity_orphan(session)
 
     return deleted_count
+
+def clear_suspicious_domains():
+    
+    with DB.get_session() as session, session.begin():
+        session.query(SuspiciousDomain).delete()
+        delete_entity_orphan(session)
+        website_record.remove_all_screenshots()
+
 
 
 def _get_or_create_entity(session: Session, entity_type: EntityType, entity_data: dict) -> Entity:

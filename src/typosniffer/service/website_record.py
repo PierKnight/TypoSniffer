@@ -16,8 +16,7 @@ from typosniffer.utils.logger import log
 def delete_screenshots(session, flush_context, instances):
 
     for obj in session.deleted:
-        print("Deleted object:", obj)
-
+        
         if isinstance(obj, WebsiteRecord):
             remove_record_screenshot(obj)
 

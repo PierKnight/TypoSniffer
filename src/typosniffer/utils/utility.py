@@ -1,9 +1,11 @@
 import csv
 from dataclasses import asdict, is_dataclass
+from enum import Enum
 from importlib import resources
 import json
 from pathlib import Path
-from typing import Any, List, Generator
+from typing import Any, Callable, List, Generator
+import click
 from pydantic import BaseModel
 from typeguard import typechecked
 from typosniffer.utils import console
@@ -42,17 +44,18 @@ def strip_tld(domain: str) -> str:
 def to_serializable(obj: Any) -> Any:
     """Convert class instances into dicts, dataclasses to dicts, etc."""
 
-
-    if isinstance(obj, BaseModel):
+    if isinstance(obj, Enum):
+        return obj.name
+    elif isinstance(obj, BaseModel):
         return obj.model_dump()
+    elif isinstance(obj, (list, tuple, Generator)):
+        return [to_serializable(i) for i in obj]
     elif is_dataclass(obj):
         return to_serializable(asdict(obj))
     elif isinstance(obj, dict):
         return {k: to_serializable(v) for k, v in obj.items()}
     elif hasattr(obj, "__dict__"):
-        return {k: v for k, v in obj.__dict__.items() if not k.startswith("_")}
-    elif isinstance(obj, (list, tuple, Generator)):
-        return [to_serializable(i) for i in obj]
+        return {k: to_serializable(v) for k, v in obj.__dict__.items() if not k.startswith("_")}
     
     return obj
 
@@ -101,5 +104,21 @@ def expand_and_create_dir(path_str: str) -> Path:
     path = Path(path_str).expanduser()
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+# Dynamically build Click options
+def add_enum_flags(enum_cls, help: Callable[[Enum], str]):
+    def decorator(f):
+        for member in enum_cls:
+            value = member.value.lower()
+            # Add a flag like --registrar
+            f = click.option(
+                f"--{value.replace('_','-')}",
+                is_flag=True,
+                help=help(value),
+                default=False
+            )(f)
+        return f
+    return decorator
 
 

@@ -13,6 +13,10 @@ class DomainResult:
     msg: str
     error: bool
 
+def exists(domainDTO: DomainDTO) -> bool:
+    with DB.get_session() as session:
+        return session.query(Domain).filter(Domain.name == domainDTO.name).first() != None
+
 def get_domains() -> list[DomainDTO]:
     """Retrieve all domains that need to be scanned"""
 

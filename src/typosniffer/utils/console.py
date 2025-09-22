@@ -1,3 +1,4 @@
+from datetime import datetime
 import enum
 from rich.console import Console
 
@@ -39,6 +40,27 @@ def print_error(*args):
 
 def status(msg, msg_type: MessageType = MessageType.INFO):
     return console.status(format_msg(msg_type, msg))
+
+
+def pretty_dict(d, indent=0):
+    lines = []
+    space = "  " * indent  # 2 spaces per level
+    for key, value in d.items():
+        # Format datetime nicely
+        if isinstance(value, datetime):
+            value = value.strftime("%c")
+        # Format lists
+        elif isinstance(value, list):
+            value = ", ".join(str(v) for v in value)
+        if isinstance(value, dict):
+            # Format nested dicts recursively
+            lines.append(f"{space}[bold green]{key}:[/bold green]")
+            lines.append(pretty_dict(value, indent=indent+1))
+        else:
+            lines.append(f"{space}[bold green]{key}:[/bold green] {value}")
+        
+    
+    return "\n".join(lines)
 
 
 

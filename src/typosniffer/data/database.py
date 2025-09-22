@@ -22,7 +22,7 @@ class DB:
     def get_session(cls):
         if cls._engine is None:
             cls._engine = create_engine(DATABASE_URL, echo=False)
-            cls._session_factory = scoped_session(sessionmaker(bind=cls._engine))
+            cls._session_factory = scoped_session(sessionmaker(bind=cls._engine, expire_on_commit=False))
             Base.metadata.create_all(cls._engine)
         return cls._session_factory()
     

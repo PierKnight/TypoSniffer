@@ -25,7 +25,7 @@ class SuspiciousDomainDTO(BaseModel):
 
     id: int
     name: str = Field(pattern=VALID_FQDN_REGEX)
-    original_domain: str = Field(pattern=VALID_FQDN_REGEX)
+    original_domain: DomainDTO
 
 class SniffCriteria(BaseModel):
 

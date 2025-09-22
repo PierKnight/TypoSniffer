@@ -199,7 +199,7 @@ def scan_domain(domain: SuspiciousDomainDTO, screenshot_data: DomainScreenshotBu
     return DomainReport(
         suspicious_domain = domain,
         update_report = update_report,
-        phishing_report = check_domain_phishing(screenshot_data.get(domain.original_domain), phish_screenshot, image_comparator) if update_report else None
+        phishing_report = check_domain_phishing(screenshot_data.get(domain.original_domain.name), phish_screenshot, image_comparator) if update_report else None
     )
 
 
@@ -208,7 +208,7 @@ def inspect_domains(domains: list[SuspiciousDomainDTO], max_workers: int = 4) ->
 
     image_comparator = cnn.ImageComparator()
 
-    original_domains = set([domain.original_domain for domain in domains])
+    original_domains = set([domain.original_domain.name for domain in domains])
 
     screenshot_data = DomainScreenshotBucket(len(original_domains))
 

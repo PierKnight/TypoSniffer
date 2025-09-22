@@ -69,9 +69,6 @@ def compare_domain(original_domain: str, domain: str, criteria: SniffCriteria) -
     return SniffResult(domain=domain, original_domain=original_domain, suspicious=sus, **sniff_result)
 
 
-
-
-
 def resolve_domain(domain, nameserver):
     """Resolve using a specific DNS server."""
     #print(f"MAKE REQUEST {domain}")
