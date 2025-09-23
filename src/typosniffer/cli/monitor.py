@@ -1,10 +1,13 @@
 
 from datetime import datetime, timedelta
+import os
 import click
 from typosniffer.config.config import get_config
 from typosniffer.service import domain, suspicious_domain
 from typosniffer.sniffing import notification, whoisds, whoisfinder
+from typosniffer.sniffing.monitor import inspect_domains
 from typosniffer.utils import console
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 
 
@@ -66,3 +69,60 @@ def discovery(
         notification.notify_new_suspicious_domains(start_date, list(sniff_result))
     else:
         console.print_info("Force a new scan by using: --force")
+
+@click.command()
+def inspect():
+    """Given all the registered suspicious domains, check if the website (if it exist) changed and run a similarity comparison against the real domain"""
+
+    with console.status("Retrieving suspicious domain list"):
+        domains = suspicious_domain.get_all_suspicious_domains()
+
+    if len(domains) == 0:
+        console.print_info("No suspicious domains have been found: use 'typosniffer discovery' to update the list")
+        return
+
+    cfg = get_config()
+
+    start_date = datetime.now()
+
+    with console.status("Inspecting suspicious domains"):
+        reports = inspect_domains(domains, cfg.inspection.max_workers)
+
+        for report in reports:
+            domain = report.suspicious_domain
+            if report.update_report:
+                console.print_info(f"Domain {domain.name} updated: {report.update_report}")
+            if report.phishing_report:
+                console.print_info(f"Domain {domain.name} phishing scan: {report.phishing_report}")
+        
+    notification.notify_inspection_suspicious_domains(inspection_date=start_date, reports=reports, suspicious_domains=domains)
+
+
+def _monitor_task():
+
+    console.print_info("Starting Domain Discovery")
+
+    #run discovery command
+    ctx = click.Context(discovery)
+    ctx.forward(discovery, force=False)
+
+    console.print_info("Starting Domain Inspection")
+
+    #run inspect command
+    ctx = click.Context(inspect)
+    ctx.forward(inspect)
+            
+@click.command()
+@click.argument('hour')
+@click.argument('minute')
+def monitor(hour: str, minute: str):
+    """Daemon to monitor suspicious domains by calling the discovery and inspection step each day"""
+
+    scheduler = BlockingScheduler()
+
+    try:
+        scheduler.add_job(_monitor_task, 'cron', hour=hour, minute=minute)
+        console.print_info("Press Ctrl+{} to exit".format("Break" if os.name == "nt" else "C"))
+        scheduler.start()
+    except ValueError as e:
+        console.print_error(e)

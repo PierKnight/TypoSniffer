@@ -6,7 +6,7 @@ from typing import Optional
 from zipfile import Path
 from typosniffer.config.config import get_config
 from typosniffer.data.database import DB
-from typosniffer.data.dto import SuspiciousDomainDTO
+from typosniffer.data.dto import DomainDTO, SuspiciousDomainDTO
 from typosniffer.data.tables import SuspiciousDomain, WebsiteRecord
 from sqlalchemy.orm import Session
 from sqlalchemy import event
@@ -26,21 +26,28 @@ def add_record(session: Session, record: WebsiteRecord):
     return session.add(record)
 
 
-def get_last_record_of_domain(session: Session, domain: SuspiciousDomainDTO) -> Optional[WebsiteRecord]:
-    return session.query(WebsiteRecord) \
-        .join(WebsiteRecord.suspicious_domain) \
-        .filter(SuspiciousDomain.name == domain.name) \
-        .order_by(WebsiteRecord.creation_date.desc()) \
-        .first()
+def get_last_record_of_domain(session: Session, domain: DomainDTO) -> Optional[WebsiteRecord]:
+    return (
+            session.query(WebsiteRecord) 
+            .join(WebsiteRecord.suspicious_domain) 
+            .filter(SuspiciousDomain.name == domain.name) 
+            .order_by(WebsiteRecord.creation_date.desc()) 
+            .first()
+        )
 
-def suspicious_domain_records(domain: SuspiciousDomainDTO):
+def get_suspicious_domain_records(domain: DomainDTO, ascending: bool, limit: int) -> Optional[list[WebsiteRecord]]:
+    print(ascending)
     with DB.get_session() as session, session.begin():
-        return (
+        query = (
             session.query(WebsiteRecord)
             .join(WebsiteRecord.suspicious_domain) 
             .filter(SuspiciousDomain.name == domain.name)
-            .first()
         )
+        order_expr = WebsiteRecord.creation_date.asc() if ascending else WebsiteRecord.creation_date.desc()
+        query = query.order_by(order_expr)
+        if limit > 0:
+            query = query.limit(limit)
+        return query.all()
 
 def get_screenshot_from_record(record: WebsiteRecord) -> Path:  
     return get_screenshot(record.suspicious_domain, record.creation_date)
