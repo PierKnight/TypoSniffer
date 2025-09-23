@@ -3,11 +3,12 @@ import click
 from rich.prompt import Confirm
 from typosniffer.data.dto import DomainDTO
 from typosniffer.utils import console
+from typosniffer.utils.click_utility import LoggingGroup
 from typosniffer.utils.exceptions import ServiceFailure
 from typosniffer.service.domain import *
 
 
-@click.group()
+@click.group(cls=LoggingGroup)
 def domain():
     """Manage domains"""
 

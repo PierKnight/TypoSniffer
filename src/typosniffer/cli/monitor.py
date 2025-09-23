@@ -8,6 +8,7 @@ from typosniffer.sniffing import notification, whoisds, whoisfinder
 from typosniffer.sniffing.monitor import inspect_domains
 from typosniffer.utils import console
 from apscheduler.schedulers.blocking import BlockingScheduler
+from typosniffer.utils.click_utility import LoggingCommand
 
 
 
@@ -19,7 +20,7 @@ def clear(days: int):
     console.print_info(f"[bold green]Cleared {removed_files} old domains[/bold green]")
 
 
-@click.command()
+@click.command(cls=LoggingCommand)
 @click.option('--force', is_flag=True, help='force scan even on already updated domains')
 def discovery(
     force: bool
@@ -70,7 +71,7 @@ def discovery(
     else:
         console.print_info("Force a new scan by using: --force")
 
-@click.command()
+@click.command(cls=LoggingCommand)
 def inspect():
     """Given all the registered suspicious domains, check if the website (if it exist) changed and run a similarity comparison against the real domain"""
 
@@ -112,7 +113,7 @@ def _monitor_task():
     ctx = click.Context(inspect)
     ctx.forward(inspect)
             
-@click.command()
+@click.command(cls=LoggingCommand)
 @click.argument('hour')
 @click.argument('minute')
 def monitor(hour: str, minute: str):

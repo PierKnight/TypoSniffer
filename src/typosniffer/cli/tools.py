@@ -4,9 +4,10 @@ from typosniffer.data.dto import DomainDTO
 from typosniffer.sniffing import fuzzer, sniffer
 from typosniffer.utils import utility
 from typosniffer.utils import console
+from typosniffer.utils.click_utility import LoggingGroup
 
 
-@click.group()
+@click.group(cls=LoggingGroup)
 def tools():
     """additional tools"""
 

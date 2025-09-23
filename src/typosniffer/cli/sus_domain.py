@@ -10,10 +10,11 @@ from typosniffer.data.dto import DomainDTO, EntityType
 from typosniffer.service import suspicious_domain as suspicious_domain_service, domain as domain_service
 from typosniffer.utils import console
 
+from typosniffer.utils.click_utility import LoggingGroup
 from typosniffer.utils.utility import to_serializable
 from typosniffer.utils.utility import add_enum_flags
 
-@click.group()
+@click.group(cls=LoggingGroup)
 def sus_domain():
     """Manage suspicious domains"""
 

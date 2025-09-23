@@ -4,14 +4,15 @@ from rich.table import Table
 from typosniffer.data.dto import DomainDTO
 from typosniffer.service import website_record
 from typosniffer.utils import console
+from typosniffer.utils.click_utility import LoggingGroup
 
 
-@click.group()
+@click.group(cls=LoggingGroup)
 def record():
     """Manage suspicious domain records"""
 
 
-@record.command
+@record.command()
 @click.option('--order', '-o', type=click.Choice(['desc', 'asc']), show_default = True, default = 'asc', help="Order of records by creation date (asc or desc).")
 @click.option('--limit', '-l', type=click.IntRange(min=0), default = 0)
 @click.argument('suspicious_domain')
