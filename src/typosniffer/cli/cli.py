@@ -1,4 +1,5 @@
 import logging
+from typosniffer.utils.click_utility import LoggingAllGroup
 from typosniffer.utils.logger import log
 import click
 from rich.table import Table
@@ -38,18 +39,15 @@ By Pierluigi Altimari
     console.print_info(f"[bold green]{banner}[/bold green]")
 
 
-@click.group(invoke_without_command=True)
+@click.group(invoke_without_command=True, cls=LoggingAllGroup)
 @click.option("-v", "--verbose", is_flag=True)
 @click.pass_context
 @typechecked
 def cli(ctx : click.core.Context, verbose: bool):
 
-    
-
     if verbose:
         log.setLevel(logging.DEBUG)
 
-    #print(ctx)
     if ctx.invoked_subcommand is None:
         print_banner()
         click.echo(cli.get_help(ctx))
