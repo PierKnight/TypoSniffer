@@ -1,11 +1,7 @@
 from dnstwist import Fuzzer
-from typosniffer.config import config
 from typeguard import typechecked
 from typosniffer.data.dto import DomainDTO
 from typosniffer.utils import utility
-
-
-POSSIBLE_FORMATS = ['json', 'csv', 'plain']
 
 @typechecked
 def fuzz(domain: DomainDTO, tld_dictionary: list[str], word_dictionary: list[str], unicode: bool = False):

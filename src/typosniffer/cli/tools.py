@@ -70,7 +70,7 @@ def dns(tld_dictionary: list[str], word_dictionary: list[str], nameservers: list
     callback=utility.list_file_option,
     default=utility.get_resource("words.txt")
 )
-@click.option('-f', '--format', type=click.Choice(fuzzer.POSSIBLE_FORMATS, case_sensitive=False), default=fuzzer.POSSIBLE_FORMATS[0], help='format of output file')
+@click.option('-f', '--format', type=click.Choice(['csv', 'json'], case_sensitive=False), default='csv', help='format of output file')
 @click.option('-u', '--unicode', is_flag=True, default=False, help='Write domains in unicode instead of punycode')
 @click.argument('domain')
 @click.argument('filename', type=click.Path(dir_okay=True, writable=True))
