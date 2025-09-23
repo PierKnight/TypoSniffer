@@ -1,10 +1,10 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
-from typosniffer.config import config
+from typosniffer import FOLDER
 
 # Directory for logs
-log_dir = config.FOLDER / "logs"
+log_dir = FOLDER / "logs"
 log_dir.mkdir(exist_ok=True)
 
 # File handler: rotates every day at midnight

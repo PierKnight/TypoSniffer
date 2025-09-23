@@ -6,9 +6,6 @@ from typosniffer.utils import utility
 
 
 POSSIBLE_FORMATS = ['json', 'csv', 'plain']
-TLD_FILE = config.FOLDER / "tdls.txt"
-IANA_TLD = "https://data.iana.org/TLD/tlds-alpha-by-domain.txt"
-
 
 @typechecked
 def fuzz(domain: DomainDTO, tld_dictionary: list[str], word_dictionary: list[str], unicode: bool = False):

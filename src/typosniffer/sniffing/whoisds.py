@@ -3,11 +3,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 import os
 from pathlib import Path
+import typosniffer
 from typosniffer.data.dto import DomainDTO
-import typosniffer.data.dto
 from typosniffer.utils import request
 from typosniffer.utils.logger import log
-from typosniffer.config import config
 from typosniffer.utils.console import console
 from typosniffer.sniffing import sniffer
 from zipfile import ZipFile
@@ -16,7 +15,7 @@ from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 from rich.table import Table
 
 
-WHOISDS_FOLDER = config.FOLDER / "whoisds"
+WHOISDS_FOLDER = typosniffer.FOLDER / "whoisds"
 
 class WhoIsDsFile:
 

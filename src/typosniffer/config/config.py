@@ -3,11 +3,11 @@ import json
 import os
 from typing import Optional
 import yaml
-from pathlib import Path
 from pydantic import BaseModel, ConfigDict, DirectoryPath, EmailStr, Field, FilePath
+from typosniffer import FOLDER
 from typosniffer.data.dto import SniffCriteria
-from typosniffer.utils import console
 from typosniffer.utils.utility import expand_and_create_dir, get_resource
+from typosniffer.utils.logger import log
 import multiprocessing
 
 class EmailConfig(BaseModel):
@@ -44,7 +44,7 @@ class MonitorConfig(BaseModel):
     page_load_timeout: int = Field(default = 30, ge=0)
     hash_threeshold: int = Field(default = 6, ge=0, le=16)
     max_workers: int = Field(default = multiprocessing.cpu_count(), ge=1)
-
+    
 
 
 class AppConfig(BaseModel):
@@ -57,14 +57,17 @@ class AppConfig(BaseModel):
 
 cfg : AppConfig = None
 
-FOLDER = Path(os.path.expanduser("~/.typosniffer"))
 CONFIG = FOLDER / "config.yaml"
 
 def load():
+
+    log.info(f"Loading Configuration at {CONFIG}")
+
     global cfg
     os.makedirs(FOLDER, exist_ok=True)
     
     if not CONFIG.exists():
+        log.info("Config not found, creating default confgi")
         default_cfg = AppConfig()
         config_json = default_cfg.model_dump_json()
         
@@ -78,7 +81,7 @@ def load():
         config_data = yaml.safe_load(f)
 
         cfg = AppConfig(**config_data)
-        console.print_info("Loaded App Configuration")
+    log.info(f"Configuration Loaded")
 
 def get_config() -> AppConfig:
     return cfg
