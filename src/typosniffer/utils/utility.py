@@ -64,7 +64,7 @@ def to_serializable(obj: Any) -> Any:
 
 
 def save_as_json(obj: Any, filepath: Path, print: bool = True) -> None:
-    with open("w", filepath, encoding="utf-8") as f:
+    with filepath.open("w", newline="", encoding="utf-8") as f:
         json.dump(to_serializable(obj), f, ensure_ascii=False, indent=4)
 
     if print:
