@@ -1,10 +1,13 @@
 from pathlib import Path
 import click
+import imagehash
+from typosniffer.config.config import get_config
 from typosniffer.data.dto import DomainDTO
-from typosniffer.sniffing import fuzzer, sniffer
+from typosniffer.sniffing import cnn, fuzzer, sniffer
 from typosniffer.utils import utility
 from typosniffer.utils import console
 from typosniffer.utils.click_utility import LoggingGroup
+from PIL import Image
 
 
 @click.group(cls=LoggingGroup)
@@ -98,3 +101,45 @@ def fuzzing(unicode: bool, tld_dictionary: list[str], word_dictionary: list[str]
         else:
             console.print_error(f"Unknown format: {format}. Supported: json, plain, csv")
             return
+        
+
+@tools.command()
+@click.argument('file1', type=click.Path(file_okay=True))
+@click.argument('file2', type=click.Path(file_okay=True))
+@click.option('--hash-alg', type=click.Choice(['phash', 'dhash', 'whash', 'average_hash']), default = 'phash')
+@click.option('--hash-size', type=click.IntRange(min = 2), default = 8)
+def compare_images(file1: Path, file2: Path, hash_alg: str, hash_size: int):
+    """Compare two images with the algorithms that can be used in typosniffer"""
+
+    hash_function = getattr(imagehash, hash_alg)
+
+    image1 = Image.open(file1)
+    image2 = Image.open(file2)
+    hash1 = hash_function(image1, hash_size=hash_size)
+    hash2 = hash_function(image2, hash_size=hash_size)
+
+    hash1 = imagehash.hex_to_hash(str(hash1))
+    hash2 = imagehash.hex_to_hash(str(hash2))
+    
+    cnn_comparator = cnn.ImageComparator()
+
+    console.print_info(f"hash hamming: {hash2 - hash1}")
+    console.print_info(f"similarity hash: {1 - (hash2 - hash1) / (hash_size)**2}")
+    console.print_info(f"similarity ccn: {cnn_comparator.get_similarity(image1, image2)}")
+
+@tools.command()
+@click.argument('domain1')
+@click.argument('domain2')
+def compare_domains(domain1: str, domain2: str):
+    """Compare two domains using the configured sniff criteria"""
+
+    DomainDTO(name = domain1)
+    DomainDTO(name = domain2)
+
+    criteria = get_config().discovery.criteria
+
+    console.console.print("Configured Criteria:", criteria)
+    
+    sniff_result = sniffer.compare_domain(domain1, domain2, get_config().discovery.criteria)
+
+    console.console.print(sniff_result)

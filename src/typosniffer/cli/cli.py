@@ -12,7 +12,6 @@ from typosniffer.cli.domain import domain
 from typosniffer.cli.monitor import discovery, inspect, monitor
 from typosniffer.cli.tools import tools
 from typosniffer.cli.sus_domain import sus_domain
-from typosniffer.cli.test import test
 from typosniffer.cli.record import record
 
 
@@ -81,7 +80,6 @@ cli.add_command(monitor)
 cli.add_command(sus_domain)
 cli.add_command(domain)
 cli.add_command(tools)
-cli.add_command(test)
 cli.add_command(record)
 
 

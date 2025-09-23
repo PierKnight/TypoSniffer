@@ -121,7 +121,7 @@ def create_suspicious_domain(
 
     if suspicious is None:
         # Assign original domain and entities at creation
-        suspicious_domain.original_domain = original_domain
+        suspicious_domain.original_domain.id = original_domain.id
         suspicious_domain.entities = entities
         session.add(suspicious_domain)
         suspicious = suspicious_domain
