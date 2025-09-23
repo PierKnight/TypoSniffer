@@ -4,12 +4,15 @@ from enum import Enum
 from importlib import resources
 import json
 from pathlib import Path
+import socket
 from typing import Any, Callable, List, Generator
 import click
 from pydantic import BaseModel
 from typeguard import typechecked
 from typosniffer.utils import console
 import tldextract
+
+from typosniffer.utils.exceptions import InternetMissing
 
 @typechecked
 def read_lines(file: Path) -> list[str]:
@@ -120,5 +123,17 @@ def add_enum_flags(enum_cls, help: Callable[[Enum], str]):
             )(f)
         return f
     return decorator
+
+def check_internet(throw: bool) -> bool:
+
+    try:
+        socket.create_connection(("1.1.1.1", 53), timeout=3)
+        return True
+    except Exception as e:
+        print(e)
+        if throw:
+            raise InternetMissing()
+
+    return False
 
 

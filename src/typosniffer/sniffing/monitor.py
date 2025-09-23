@@ -13,6 +13,8 @@ from typosniffer.data.tables import WebsiteRecord
 from typosniffer.service import website_record
 from typosniffer.sniffing import cnn
 from typosniffer.utils import console, request
+from typosniffer.utils import utility
+from typosniffer.utils.exceptions import InternetMissing
 from typosniffer.utils.logger import log
 from typosniffer.utils.utility import expand_and_create_dir
 from PIL import Image
@@ -192,6 +194,9 @@ def check_domain_phishing(real_screenshot: Optional[ScreenShotInfo], phish_scree
 
 def scan_domain(domain: SuspiciousDomainDTO, screenshot_data: DomainScreenshotBucket, image_comparator: cnn.ImageComparator) -> DomainReport:
 
+    console.print_info(f'Inspecting {domain.name}')
+    utility.check_internet(throw=True)
+
     phish_screenshot = get_screenshot(domain.name)
 
     update_report = check_domain_updated(phish_screenshot, domain)
@@ -229,6 +234,10 @@ def inspect_domains(domains: list[SuspiciousDomainDTO], max_workers: int = 4) ->
             except TimeoutException:
                 console.print_error(f"Website took too much time to load: {domain}")
                 log.error("Webdriver timeout", exc_info=True)
+            except InternetMissing:
+                console.print_error(f"Internet is missing, skip inspection step")
+                log.error("Internet missing")
+                break
             except Exception as e:
                 console.print_error(f"Failed to inspect domain, generic error: {domain}")
                 log.error(f'Error during domain scan {domain}', exc_info=True) 
