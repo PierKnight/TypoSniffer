@@ -70,7 +70,7 @@ def compare_domain(original_domain: str, domain: str, criteria: SniffCriteria) -
         # Only mark as suspicious if the computed value crosses the threshold
         if criteria_value:
             value = algorithm_info['alg'](original_sub_domain, sub_domain)
-            suspicious = value > criteria_value if algorithm_info['check'] == 'upper' else value < criteria_value
+            suspicious = value >= criteria_value if algorithm_info['check'] == 'upper' else value <= criteria_value
             if suspicious:
                 sus = True
 
