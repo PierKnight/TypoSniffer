@@ -121,9 +121,9 @@ def create_suspicious_domain(
 
     if suspicious is None:
         # Assign original domain and entities at creation
-        suspicious_domain.original_domain.id = original_domain.id
-        suspicious_domain.entities = entities
         session.add(suspicious_domain)
+        suspicious_domain.original_domain_id = original_domain.id
+        suspicious_domain.entities = entities
         suspicious = suspicious_domain
         log.debug(f"Added new suspicious domain: {suspicious}")
     else:
@@ -144,8 +144,8 @@ def add_suspicious_domain(sniff_results: set[SniffResult], whois_data: dict):
     log.info(f"Adding {len(sniff_results)} to database")
 
 
-    with DB.get_session() as session, session.begin():
-        for result in sniff_results:
+    for result in sniff_results:
+        with DB.get_session() as session, session.begin():
     
             log.debug(f"Init {result.domain} persistance")
 
@@ -172,7 +172,6 @@ def add_suspicious_domain(sniff_results: set[SniffResult], whois_data: dict):
                     url=data.get('url'),
                     dnssec=data.get('dnssec'),
                     whois_server=data.get('whois_server'),
-                    entities=found_entities,
                     updated_date = data.get('last_changed_date'),
                     creation_date = data.get('registration_date'),
                     expiration_date = data.get('expiration_date'),
