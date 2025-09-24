@@ -2,6 +2,8 @@ import numpy as np
 from collections import Counter
 import math
 
+from typosniffer.config.config import get_config
+
 def combined_ngrams(s, ns=[2,3]):
     """Generate combined character n-grams for multiple n values"""
     ngram_list = []
@@ -41,7 +43,10 @@ def cosine_similarity(vec1, vec2):
     return np.dot(v1, v2) / (norm1 * norm2)
 
 def cosine_similarity_string(s1, s2):
-    corpus_ngrams = [combined_ngrams(s1, ns=[1,2]), combined_ngrams(s2, ns=[1,2])]
+
+    ngram = get_config().discovery.criteria.tf_idf_ngram
+
+    corpus_ngrams = [combined_ngrams(s1, ns=ngram), combined_ngrams(s2, ns=ngram)]
 
     idfs = compute_idf(corpus_ngrams)
     tf1 = compute_tf(corpus_ngrams[0])

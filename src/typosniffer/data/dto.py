@@ -38,6 +38,8 @@ class SniffCriteria(BaseModel):
     levenshtein: Optional[int] = Field(None, ge=1)
     tf_idf: Optional[float] = Field(None, ge=0, le=1)
 
+    tf_idf_ngram: list[int] = Field([1, 2])
+
 class WebsiteStatus(Enum):
     CHANGED = 'CHANGED'
     DOWN = 'DOWN'
