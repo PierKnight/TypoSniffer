@@ -1,9 +1,10 @@
 from pathlib import Path
 import click
 import imagehash
+import whoisit
 from typosniffer.config.config import get_config
 from typosniffer.data.dto import DomainDTO
-from typosniffer.sniffing import cnn, fuzzer, sniffer
+from typosniffer.sniffing import cnn, fuzzer, sniffer, whoisfinder
 from typosniffer.utils import utility
 from typosniffer.utils import console
 from typosniffer.utils.click_utility import LoggingGroup
@@ -143,3 +144,12 @@ def compare_domains(domain1: str, domain2: str):
     sniff_result = sniffer.compare_domain(domain1, domain2, get_config().discovery.criteria)
 
     console.console.print(sniff_result)
+
+@tools.command()
+@click.argument('domain')
+def who(domain: str):
+
+    DomainDTO(name=domain)
+
+    whoisit.bootstrap(overrides=True)
+    console.console.print(whoisfinder.get_whois(domain))

@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import datetime
 import whois
 import whoisit
-from whoisit.errors import RateLimitedError, UnsupportedError
+from whoisit.errors import RateLimitedError, UnsupportedError, ResourceDoesNotExist
 from typosniffer.utils import console
 from typosniffer.utils.logger import log
 import tldextract
@@ -37,11 +37,13 @@ def _whois(domain: str):
 
         return datetime.datetime.strptime(date, "%Y-%m-%d %H:%M:%S") if date else None
     
-    def parse_status(status):
-        if isinstance(status, list):
-            return status
-        return [status]
-
+    def parse_list(data):
+        if isinstance(data, list):
+            return data
+        if data is None:
+            return None
+        return [data]
+    
 
     whois_data = whois.whois(domain)
 
@@ -54,16 +56,16 @@ def _whois(domain: str):
         dnssec = dnssec_val
 
     return {
-        "nameservers": whois_data.get("name_servers"),
+        "nameservers": parse_list(whois_data.get("name_servers")),
         "whois_server": whois_data.get("whois_server"),
-        "status": parse_status(whois_data.get("status")),
+        "status": parse_list(whois_data.get("status")),
         "creation_date": parse_date(whois_data.get("creation_date")),
         "updated_date": parse_date(whois_data.get("updated_date")),
         "expiration_date": parse_date(whois_data.get("expiration_date")),
         "dnssec": dnssec,
     }
 
-def _whoisit(domain: str):
+def get_whois(domain: str):
 
     log.debug(f"Retrive whois data of {domain} domain")
 
@@ -74,7 +76,7 @@ def _whoisit(domain: str):
         except RateLimitedError:
             log.debug(f"use rdap protocol on {domain} with follow related enabled")
             return whoisit.domain(domain, allow_insecure_ssl=True, follow_related=True)
-    except UnsupportedError:
+    except (UnsupportedError, ResourceDoesNotExist):
         log.debug(f"Fallback to whois domain {domain}")
         return _whois(domain)
         
@@ -105,7 +107,7 @@ def find_whois(domains: list[str], requests_per_minute: int, max_workers: int):
             
             for domains_per_tdl in queries.values():
                 for domain in domains_per_tdl:
-                    future_to_query[executor.submit(_whoisit, domain)] = domain
+                    future_to_query[executor.submit(get_whois, domain)] = domain
 
             for future in as_completed(future_to_query):
                 try:
