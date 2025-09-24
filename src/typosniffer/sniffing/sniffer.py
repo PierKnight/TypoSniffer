@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from multiprocessing import Process, Queue
 from itertools import cycle
 from pathlib import Path
+from typing import Optional
 import dns
 from dns import exception
 from typosniffer.data.dto import DomainDTO
@@ -23,12 +24,12 @@ class SniffResult:
     original_domain: str
     domain: str
     suspicious: bool
-    damerau_levenshtein: int
-    hamming: int
-    jaro: float
-    jaro_winkler: float
-    levenshtein: int
-    tf_idf: float
+    damerau_levenshtein: Optional[int] = None
+    hamming: Optional[int] = None
+    jaro: Optional[float] = None
+    jaro_winkler: Optional[float] = None
+    levenshtein: Optional[int] = None
+    tf_idf: Optional[float] = None
 
 @dataclass(frozen=True)
 class SuspiciousDomainWhoIs:
@@ -48,7 +49,7 @@ SNIFF_ALGORITHMS = {
     'tf_idf': {'alg': tf_idf.cosine_similarity_string, 'check': 'upper'}
 }
 
-def compare_domain(original_domain: str, domain: str, criteria: SniffCriteria) -> SniffResult:
+def compare_domain(original_domain: str, domain: str, criteria: SniffCriteria, short_circuit: bool = False) -> SniffResult:
     """
     Compares a domain against an original domain using multiple algorithms defined in SNIFF_ALGORITHMS.
     Determines if the domain is suspicious based on the provided SniffCriteria thresholds.
@@ -75,6 +76,9 @@ def compare_domain(original_domain: str, domain: str, criteria: SniffCriteria) -
                 sus = True
 
         sniff_result[name] = value  # store score for this algorithm
+
+        if short_circuit and sus:
+            break
 
     # Return aggregated result with all algorithm scores and suspicious flag
     return SniffResult(domain=domain, original_domain=original_domain, suspicious=sus, **sniff_result)
@@ -184,28 +188,32 @@ def _scan_domains(
     - queue: Multiprocessing Queue used to send progress and final results.
     """
 
-    # Set to store SniffResult objects for suspicious matches found in this chunk
-    results = set()
+    try:
 
-    # Calculate how often to report progress; currently using 5% of chunk length
-    total_progress = max(len(chunk) * 0.05, 1)
+        # Set to store SniffResult objects for suspicious matches found in this chunk
+        results = set()
 
-    # Iterate over each domain in the chunk
-    for index, domain_to_scan in enumerate(chunk):
+        # Calculate how often to report progress; currently using 5% of chunk length
+        total_progress = max(len(chunk) * 0.05, 1)
 
-        # Compare each domain_to_scan against every reference domain
-        for domain in domains:
-            sniff_result = compare_domain(domain.name, domain_to_scan, criteria)
+        # Iterate over each domain in the chunk
+        for index, domain_to_scan in enumerate(chunk):
 
-            if sniff_result.suspicious:
-                results.add(sniff_result)
+            # Compare each domain_to_scan against every reference domain
+            for domain in domains:
+                sniff_result = compare_domain(domain.name, domain_to_scan, criteria, short_circuit=True)
 
-        # Report progress back to the main process periodically
-        # Only send every total_progress steps to avoid overwhelming the queue
-        if index > 0 and index % total_progress == 0:
-            queue.put(('progress', task_id, total_progress))
+                if sniff_result.suspicious:
+                    results.add(sniff_result)
 
-    queue.put(('done', task_id, results))
+            # Report progress back to the main process periodically
+            # Only send every total_progress steps to avoid overwhelming the queue
+            if index > 0 and index % total_progress == 0:
+                queue.put(('progress', task_id, total_progress))
+
+        queue.put(('done', task_id, results))
+    except Exception as e:
+        queue.put(('exception', task_id, e))
 
 
 def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria, max_workers: int) -> set[SniffResult]:
@@ -270,6 +278,8 @@ def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria, ma
                 log.info(f"sniffed chunk {task_id}")
                 progress.update(task_bars[task_id], completed=True)
                 finished += 1
+            elif kind == "exception":
+                raise payload
 
     log.info(f"sniffed a total of {len(domains_to_scan)} domains")
     
