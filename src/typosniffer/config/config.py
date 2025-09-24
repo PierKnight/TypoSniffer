@@ -41,7 +41,7 @@ class DiscoveryConfig(BaseModel):
 class MonitorConfig(BaseModel):
 
     screenshot_dir: DirectoryPath = expand_and_create_dir("~/.typosniffer/screenshots")
-    page_load_timeout: int = Field(default = 30, ge=0)
+    page_load_timeout: int = Field(default = 10, ge=0)
     hash_threeshold: int = Field(default = 6, ge=0, le=16)
     max_workers: int = Field(default = multiprocessing.cpu_count(), ge=1)
     

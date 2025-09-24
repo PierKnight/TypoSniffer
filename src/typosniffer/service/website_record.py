@@ -36,7 +36,6 @@ def get_last_record_of_domain(session: Session, domain: DomainDTO) -> Optional[W
         )
 
 def get_suspicious_domain_records(domain: DomainDTO, ascending: bool, limit: int) -> Optional[list[WebsiteRecord]]:
-    print(ascending)
     with DB.get_session() as session, session.begin():
         query = (
             session.query(WebsiteRecord)

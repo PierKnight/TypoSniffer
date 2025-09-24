@@ -1,9 +1,12 @@
-from typing import Tuple
+from io import BytesIO
 import requests
 from importlib.metadata import version
-from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.common.by import By
+import asyncio
+from playwright.async_api import async_playwright
+from playwright.async_api import Browser as PlayBrowser
+from PIL import Image
+from typosniffer.service import suspicious_domain
+
 
 USER_AGENT = f"TypoSniffer/{version("typosniffer")}"
 
@@ -85,37 +88,39 @@ def resolve_url(domain: str) -> str:
     return f"http://{domain}"
 
 
-class Browser:
-    
-	def __init__(self, url: str, timeout: int):
-        
-		self.url = url
-
-		chrome_options = webdriver.ChromeOptions()
-		chrome_options.accept_insecure_certs = True
-
-		for opt in WEBDRIVER_ARGUMENTS:
-			chrome_options.add_argument(opt)
-		
-		
-		self.driver = webdriver.Chrome(options=chrome_options)
-		self.driver.execute_cdp_cmd('Network.setUserAgentOverride', {'userAgent':USER_AGENT})
-		self.driver.set_page_load_timeout(timeout)
-
-		WebDriverWait(self.driver, timeout).until(lambda d: d.execute_script("return document.readyState") == "complete")
-          
-	def screenshot(self) -> Tuple[bytes, str]:
+async def process_page(browser : PlayBrowser, domain, semaphore):
+	
+	url = await asyncio.to_thread(resolve_url, domain.name)
+	async with semaphore:
+		context = await browser.new_context(user_agent=USER_AGENT)
+		page = await context.new_page()
+		print(f"OPENING PAGE {domain.name}")
 		try:
-			self.driver.get(self.url)
-                  
-			required_width = self.driver.execute_script('return document.body.parentNode.scrollWidth')
-			required_height = self.driver.execute_script('return document.body.parentNode.scrollHeight')
-			self.driver.set_window_size(required_width, required_height)
-			
-			screenshot = self.driver.find_element(By.TAG_NAME, "body").screenshot_as_png
-                  
-			return screenshot, self.driver.current_url
+			await page.goto(url)
+			print(f"OPENING PAGE URL {domain.name}")
+			screenshot_path = f'/home/kali/Desktop/{domain.name}.png'
+			screenshot_bytes = await page.screenshot(path=screenshot_path, full_page=True)
 
-			#return self.driver.get_screenshot_as_png(), self.driver.current_url
+			image = Image.open(BytesIO(screenshot_bytes))
+
+			image.save(screenshot_path)
+
+			print(page.url)
+		except Exception as e:
+			print(f"❌ Failed {domain.name}: {e}")
 		finally:
-			self.driver.quit()
+			await context.close()
+        
+
+async def test():
+
+	domains = suspicious_domain.get_all_suspicious_domains()
+
+	semaphore = asyncio.Semaphore(5)
+
+	async with async_playwright() as p:
+		browser = await p.chromium.launch(headless=True, args=WEBDRIVER_ARGUMENTS)
+		
+		tasks = [process_page(browser, domain, semaphore) for i, domain in enumerate(domains)]
+		await asyncio.gather(*tasks)
+		await browser.close()

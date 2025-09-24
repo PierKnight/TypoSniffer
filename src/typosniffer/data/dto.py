@@ -1,14 +1,25 @@
+import idna
 import enum
 from enum import Enum
 from typing import Optional, Type
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from dnstwist import VALID_FQDN_REGEX
+
+
+def punycode_validator(value: str) -> str:
+    """Convert a domain name to punycode (IDNA ASCII)."""
+    return idna.encode(value).decode("ascii")
 
 class DomainDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
     
     id: Optional[int] = None
     name: str = Field(pattern=VALID_FQDN_REGEX)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def name_to_punycode(cls, v: str) -> str:
+        return punycode_validator(v)
 
 
 class EntityType(enum.Enum):
@@ -20,12 +31,19 @@ class EntityType(enum.Enum):
     ABUSE = "ABUSE"
     BILLING = "BILLING"
 
+
+
 class SuspiciousDomainDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True, frozen=True)
 
     id: int
     name: str = Field(pattern=VALID_FQDN_REGEX)
     original_domain: DomainDTO
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def name_to_punycode(cls, v: str) -> str:
+        return punycode_validator(v)
 
 class SniffCriteria(BaseModel):
 
