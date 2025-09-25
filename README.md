@@ -49,14 +49,47 @@ This toolkit helps security teams monitor domain-space abuse, discover suspiciou
 
 ---
 
-## Getting Started
+## Installation
 
 ### Prerequisites
 - Python 3.13+  
-- Database (PostgreSQL/MySQL/SQLite supported)  
-
-### Installation
-```bash
-git clone https://github.com/PierKnight/TypoSniffer#
+- Database supported by SQLAlchemy
+- `poetry` installed ([Poetry installation guide](https://python-poetry.org/docs/#installation))
+### Clone the Repository
+```sh
+git clone https://github.com/PierKnight/TypoSniffer.git
 cd TypoSniffer
+```
+
+### Option 1: Use Poetry Virtual Environment
+
+```sh
+#Install dependencies
 poetry install
+
+
+#run CLI directly
+poetry run typosniffer
+
+#alternative
+#source in virtual environment
+eval $(poetry env activate)
+#run CLI
+typosniffer
+```
+
+### Option 2: Build and Install the Wheel
+
+```sh
+#Build the package
+poetry build
+#Install the generated wheel
+#(replace dist/typodetector-x.y.z-py3-none-any.whl with your version):
+pip install dist/typodetector-*.whl
+#Run CLI
+typosniffer
+```
+
+## Usage
+
+
