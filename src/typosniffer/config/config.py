@@ -1,7 +1,7 @@
 
 import json
 import os
-from typing import Optional
+from typing import ClassVar, Optional
 import yaml
 from pydantic import BaseModel, ConfigDict, DirectoryPath, EmailStr, Field, FilePath
 from typosniffer import FOLDER
@@ -10,10 +10,16 @@ from typosniffer.utils.utility import expand_and_create_dir, get_resource
 from typosniffer.utils.logger import log
 import multiprocessing
 
+
+
+
 class ImageUploadConfig(BaseModel):
+
+	DAY_IN_SECONDS: ClassVar[int] = 86400
+
 	model_config = ConfigDict(frozen=True)
 	api_key: str = Field(..., description="Upload Image API Key.")
-	expiration: Optional[int] = Field(86400, description="Optional expiration time in seconds.")
+	expiration: Optional[int] = Field(DAY_IN_SECONDS * 7, description="Optional expiration time in seconds.")
 
 
 # Email configuration for sending notifications
