@@ -38,7 +38,7 @@ class DiscoveryConfig(BaseModel):
     requests_per_minute: int = Field(default = 10, ge=1, description='Whois request per minute per Top-Level Domain')
 
 #configuration used in the inspection step
-class MonitorConfig(BaseModel):
+class InspectionConfig(BaseModel):
 
     screenshot_dir: DirectoryPath = expand_and_create_dir("~/.typosniffer/screenshots")
     page_load_timeout: int = Field(default = 10, ge=0)
@@ -51,7 +51,7 @@ class AppConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     discovery: DiscoveryConfig = DiscoveryConfig()
-    inspection: MonitorConfig = MonitorConfig()
+    inspection: InspectionConfig = InspectionConfig()
     email: Optional[EmailConfig] = None
 
 
