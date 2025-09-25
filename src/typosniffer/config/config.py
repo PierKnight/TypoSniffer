@@ -53,7 +53,7 @@ class DiscoveryConfig(BaseModel):
 class InspectionConfig(BaseModel):
 	model_config = ConfigDict(frozen=True)
 
-	screenshot_dir: DirectoryPath = Field(default_factory=lambda: expand_and_create_dir("~/.typosniffer/screenshots"), description="Directory where website screenshots are saved.")
+	screenshot_dir: DirectoryPath = Field(expand_and_create_dir("~/.typosniffer/screenshots"), description="Directory where website screenshots are saved.")
 	page_load_timeout: int = Field(default=30, ge=0, description="Timeout in seconds when loading a page to take a screenshot.")
 	hash_threshold: int = Field(default=6, ge=0, le=16, description="Maximum Hamming distance allowed between the latest and current website screenshot hash.")
 	max_workers: int = Field(default=multiprocessing.cpu_count(), ge=1, description="Maximum number of workers for parallel inspection tasks.")

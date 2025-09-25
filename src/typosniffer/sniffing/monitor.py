@@ -222,7 +222,6 @@ async def screenshot_page(browser : PlayBrowser, domain: str) -> Optional[Screen
 	url = await asyncio.to_thread(request.resolve_url, domain)
 
 	#respect the maximum number of pages at the same time
-
 	timeout_ms = get_config().inspection.page_load_timeout * 1000
 	
 	context: BrowserContext = await browser.new_context(user_agent=request.USER_AGENT)
@@ -240,7 +239,7 @@ async def screenshot_page(browser : PlayBrowser, domain: str) -> Optional[Screen
 
 		return ScreenShotInfo(image, url)
 	except PageTimeoutError:
-		console.print_error(f'Failed to screenshot {domain} page: failed fallbacks')
+		console.print_error(f'Failed to screenshot {domain} page: timeout failed fallbacks')
 	except Exception as e:
 		if "ERR_NAME_NOT_RESOLVED" in str(e):
 			console.print_error(f'Failed to screenshot {domain} page: not resolved')
