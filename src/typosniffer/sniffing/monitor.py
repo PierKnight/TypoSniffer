@@ -1,7 +1,6 @@
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
-from selenium.common.exceptions import WebDriverException
 from dataclasses import dataclass
 from typosniffer.config.config import get_config
 from typosniffer.data.database import DB
@@ -67,25 +66,6 @@ class DomainScreenshotBucket:
 				image = await screenshot_page(self.browser, domain)
 				self.images[domain] = image
 			return image        
-
-def get_screenshot(domain: str) -> Optional[ScreenShotInfo]:
-
-
-	try:
-		url = request.resolve_url(domain)
-
-		browser = request.Browser(url, timeout=get_config().inspection.page_load_timeout)
-
-		image_bytes, url = browser.screenshot()
-		
-		image_file = io.BytesIO(image_bytes)
-
-		return ScreenShotInfo(Image.open(image_file, formats=['png']), url)
-	except WebDriverException:
-		log.error(f"failed getting {domain} screenshot", exc_info=True)
-
-	return None
-	
 
 def save_screenshot(suspicious_domain: SuspiciousDomainDTO, date: datetime, screenshot: ScreenShotInfo) -> Path:
 

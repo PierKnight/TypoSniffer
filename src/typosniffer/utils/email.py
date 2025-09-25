@@ -1,7 +1,7 @@
 from email.message import EmailMessage
+from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
-from trio import Path
 from typosniffer.config.config import get_config
 import smtplib
 from jinja2 import Environment, FileSystemLoader, Template
