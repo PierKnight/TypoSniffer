@@ -47,7 +47,7 @@ def send_email(subject: str, text: str, html_body: str,
     """
     cfg = get_config()
 
-    if not cfg.email:
+    if not is_configured:
         return False
 
     # Choose STARTTLS or SSL
@@ -80,3 +80,7 @@ def send_email(subject: str, text: str, html_body: str,
     server.send_message(msg)
     server.quit()
     return True
+
+
+def is_configured() -> bool:
+    return get_config().email is not None

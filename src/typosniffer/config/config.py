@@ -10,6 +10,12 @@ from typosniffer.utils.utility import expand_and_create_dir, get_resource
 from typosniffer.utils.logger import log
 import multiprocessing
 
+class ImageUploadConfig(BaseModel):
+	model_config = ConfigDict(frozen=True)
+	api_key: str = Field(..., description="Upload Image API Key.")
+	expiration: Optional[int] = Field(86400, description="Optional expiration time in seconds.")
+
+
 # Email configuration for sending notifications
 class EmailConfig(BaseModel):
 	model_config = ConfigDict(frozen=True)
@@ -21,6 +27,8 @@ class EmailConfig(BaseModel):
 	sender_email: EmailStr = Field(..., description="Email address of the sender.")
 	receiver_email: EmailStr = Field(..., description="Email address of the recipient.")
 	starttls: bool = Field(True, description="Whether to use STARTTLS for secure SMTP connection.")
+
+	imgbb: Optional[ImageUploadConfig] = Field(None, description="Optional ImgBB configuration, it is used to upload temporary page screenshots to be previewed in the email")
 
 	discovery_template: FilePath = Field(default_factory=lambda: get_resource('template/discovery.html.j2'), description="Path to the Jinja2 template used for discovery emails.")
 	inspection_template: FilePath = Field(default_factory=lambda: get_resource('template/inspection.html.j2'), description="Path to the Jinja2 template used for inspection emails.")
@@ -46,14 +54,14 @@ class InspectionConfig(BaseModel):
 	model_config = ConfigDict(frozen=True)
 
 	screenshot_dir: DirectoryPath = Field(default_factory=lambda: expand_and_create_dir("~/.typosniffer/screenshots"), description="Directory where website screenshots are saved.")
-	page_load_timeout: int = Field(default=20, ge=0, description="Timeout in seconds when loading a page to take a screenshot.")
+	page_load_timeout: int = Field(default=30, ge=0, description="Timeout in seconds when loading a page to take a screenshot.")
 	hash_threshold: int = Field(default=6, ge=0, le=16, description="Maximum Hamming distance allowed between the latest and current website screenshot hash.")
 	max_workers: int = Field(default=multiprocessing.cpu_count(), ge=1, description="Maximum number of workers for parallel inspection tasks.")
 
 
 # Main application configuration
 class AppConfig(BaseModel):
-	model_config = ConfigDict(frozen=True)
+	model_config = ConfigDict(frozen=True, extra='forbid')
 
 	discovery: DiscoveryConfig = Field(default_factory=DiscoveryConfig, description="Configuration for the discovery step.")
 	inspection: InspectionConfig = Field(default_factory=InspectionConfig, description="Configuration for the inspection step.")
@@ -85,7 +93,7 @@ def load():
 	with open(CONFIG, "r") as f:
 		config_data = yaml.safe_load(f)
 
-		cfg = AppConfig(**config_data)
+		cfg = AppConfig.model_validate(config_data)
 	log.info(f"Configuration Loaded")
 
 def get_config() -> AppConfig:

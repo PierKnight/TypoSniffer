@@ -17,7 +17,7 @@ from PIL import Image
 import imagehash
 import io
 import asyncio
-from playwright.async_api import Browser as PlayBrowser, BrowserContext, Page
+from playwright.async_api import Browser as PlayBrowser, BrowserContext, Page, TimeoutError as PageTimeoutError
 from playwright.async_api import async_playwright
 
 
@@ -114,7 +114,7 @@ def compare_records(last_record: Optional[WebsiteRecord], new_record: WebsiteRec
 			difference = imagehash.hex_to_hash(last_record.screenshot_hash) - imagehash.hex_to_hash(new_record.screenshot_hash)
 			
 			# If the image difference exceeds the configured threshold, mark as changed
-			if difference > cfg.hash_threeshold:
+			if difference > cfg.hash_threshold:
 				status = WebsiteStatus.CHANGED  
 		else:
 			# New website exists, but last one was down; mark as UP
@@ -228,15 +228,19 @@ async def screenshot_page(browser : PlayBrowser, domain: str) -> Optional[Screen
 	context: BrowserContext = await browser.new_context(user_agent=request.USER_AGENT)
 	page: Page = await context.new_page()
 	try:
-		await page.goto(url, timeout=timeout_ms)
+		try:
+			await page.goto(url, timeout=timeout_ms, wait_until='networkidle')
+		except PageTimeoutError:
+			console.print_error(f'Failed to screenshot {domain} page: try wait_until=load')
+			await page.goto(url, timeout=timeout_ms, wait_until='load')
 		screenshot_bytes = await page.screenshot(full_page=True)
-
+		
 		image = await asyncio.to_thread(lambda: Image.open(io.BytesIO(screenshot_bytes)))
 		url = page.url
 
 		return ScreenShotInfo(image, url)
-	except TimeoutError:
-		console.print_error(f'Failed to screenshot {domain} page: timeout')
+	except PageTimeoutError:
+		console.print_error(f'Failed to screenshot {domain} page: failed fallbacks')
 	except Exception as e:
 		if "ERR_NAME_NOT_RESOLVED" in str(e):
 			console.print_error(f'Failed to screenshot {domain} page: not resolved')
