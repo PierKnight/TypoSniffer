@@ -65,6 +65,12 @@ def remove_record_screenshot(record: WebsiteRecord):
         if not any(domain_screenshot_file.parent.iterdir()):
             domain_screenshot_file.parent.rmdir()
 
+def clear_all_records():
+    
+    with DB.get_session() as session, session.begin():
+        session.query(WebsiteRecord).delete()
+        remove_all_screenshots()
+
 def remove_all_screenshots():
     for dirpath, dirnames, filenames in os.walk(get_config().inspection.screenshot_dir, topdown=False):
         # Remove all .png files

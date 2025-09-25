@@ -1,5 +1,5 @@
 import click
-
+from rich.prompt import Confirm
 from rich.table import Table
 from typosniffer.data.dto import DomainDTO
 from typosniffer.service import website_record
@@ -17,6 +17,7 @@ def record():
 @click.option('--limit', '-l', type=click.IntRange(min=0), default = 0)
 @click.argument('suspicious_domain')
 def list(suspicious_domain: str, order: str, limit: int):
+    """List all records of a given suspicious domain"""
 
     domain = DomainDTO(name = suspicious_domain)
     ascending = order == 'asc'
@@ -35,6 +36,16 @@ def list(suspicious_domain: str, order: str, limit: int):
         console.print_info(table)
     else:
         console.print_info(f"Records not found for domain {suspicious_domain}")
+
+@record.command()
+def clear():
+    """Clear list of records"""
+
+    if Confirm.ask("[bold red]Are you sure you want to delete ALL records?[/bold red]"):
+        website_record.clear_all_records()
+        console.print_info("✅ All records deleted successfully.")
+    else:
+        console.print_warning("⚠️  Operation cancelled.")
 
 
 
