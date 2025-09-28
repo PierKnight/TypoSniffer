@@ -1,10 +1,7 @@
 name: Poetry Build
+
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag for the release (e.g., v1.0.0)'
-        required: true
+  workflow_dispatch: 
 
 jobs:
   ci:
@@ -16,21 +13,34 @@ jobs:
         os: [ubuntu-22.04]
     runs-on: ${{ matrix.os }}
     steps:
+      # Step 1: Checkout code
       - uses: actions/checkout@v4
+
+      # Step 2: Set up Python
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+
+      # Step 3: Install Poetry
       - name: Run image
         uses: abatilo/actions-poetry@v3
         with:
           poetry-version: ${{ matrix.poetry-version }}
+
+      # Step 4: Get version from pyproject.toml
+      - name: Get version from pyproject.toml
+        run: echo "VERSION=$(poetry version -s)" >> $GITHUB_ENV
+
+      # Step 5: Build poetry package
       - name: Build poetry
         run: poetry build
+
+      # Step 6: Create release & upload assets
       - name: Create release & upload assets
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.event.inputs.tag }}
-          name: Release ${{ github.event.inputs.tag }}
+          tag_name: ${{ env.VERSION }}
+          name: Release ${{ env.VERSION }}
           files: dist/*
           overwrite: true
         env:
