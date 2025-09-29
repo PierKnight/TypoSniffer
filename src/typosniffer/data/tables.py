@@ -1,5 +1,5 @@
 from typing import List
-from sqlalchemy import Column, Integer, Enum as SqlEnum, ForeignKey, String, Table, UniqueConstraint,DateTime, ARRAY, Boolean
+from sqlalchemy import Column, Integer, Enum as SqlEnum, ForeignKey, String, Table, UniqueConstraint,DateTime, ARRAY, Boolean, func
 from sqlalchemy.orm import relationship, declarative_base, Mapped
 
 from typosniffer.data.dto import EntityType
@@ -31,7 +31,7 @@ class SuspiciousDomain(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
     original_domain_id = Column(Integer, ForeignKey('domain.id', ondelete='CASCADE'), nullable=False)
-
+    added_date = Column(DateTime, nullable=False, server_default=func.now())
 
     whois_server = Column(String(100), nullable=True)
     updated_date = Column(DateTime, nullable=True)
