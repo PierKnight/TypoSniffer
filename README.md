@@ -26,7 +26,6 @@
 - [Technology Stack](#technology-stack)
 - [Getting Started](#getting-started)
 - [Configuration](#configuration)
-  - [Email](#email)
 - [Commands](#commands)
   - [`discovery`](#discovery)
   - [`inspect`](#inspect)
