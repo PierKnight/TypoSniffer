@@ -79,7 +79,7 @@ This toolkit helps security teams monitor domain-space abuse, discover suspiciou
 ## Installation
 
 ### Prerequisites
-- Python 3.13+  
+- Python 3.11+  <3.14
 - Database supported by SQLAlchemy
 - `poetry` installed ([Poetry installation guide](https://python-poetry.org/docs/#installation))
 ### Clone the Repository
@@ -104,20 +104,21 @@ eval $(poetry env activate)
 ```
 
 ### Option 2: Install the Wheel
-the wheel can be generated using
+the wheel can be installed from build
 ```sh
 #Build the package
 poetry build
+#install build
+pip install dist/typosniffer-<version>-py3-none-any.whl
 ```
 otherwise download it using:
 ```sh
+#download latest uploaded release
 wget "https://github.com/PierKnight/TypoSniffer/releases/download/<version>/typosniffer-<version>-py3-none-any.whl"
+#install wheel
+pip install typosniffer-<version>-py3-none-any.whl
 ```
-Install the wheel
-```sh
-#(replace dist/typodetector-x.y.z-py3-none-any.whl with your version):
-pip install dist/typodetector-*.whl
-```
+
 ## Technology Stack
 - **Python 3.11+**: Core language
 - **Poetry**: Dependency management
@@ -138,27 +139,67 @@ pip install dist/typodetector-*.whl
 
 ## Getting Started
 
-After installing, you can run the CLI tool as follows:
-```bash
-typosniffer [command] [options]
-```
+
+### Adding domains
 First, you need to register one or more domains to use as a basis for finding similar ones and then inspecting them.
 
-To do this, run `typosniffer domain add [DOMAIN NAMES]`.
+To do this, run: [`typosniffer domain add [DOMAINNAMES]`](#domain)
+### Setup database connection
+Typosniffer relies on a backend database to store findings and other useful information, so a database must be set up if you want to use the discovery and inspection features.  
 
-Now it is possible to discover and inspect suspicious domains using `typosniffer discovery` and `typosniffer inspect`, respectively.
+Parameters can be provided using environment variables or the [configuration file](#configuration).
 
- Alternatively, you can run a daemon that executes the two commands every day at a specific hour and minute using `typosnifffer monitor`.
+
+### Ready
+
+Now it is possible to discover and inspect suspicious domains using: 
+-  [`typosniffer discovery`](#discovery)
+- [`typosniffer inspect`](#inspect)
+
+Alternatively, you can run a daemon that executes the two commands every day at a specific hour and minute using [`typosniffer monitor`](#monitor-options-hour-minute).
 
 
 
 ## Configuration
 Typosniffer offers many configurable parameters used throughout
-the application. To learn more, see [Configuration](src/typosniffer/config/config.py).
+the application.
+The file is present at `~/.typosniffer/config.yml` after the first run and it looks like this by default:
+```yml
+database:
+  drivername: postgresql+psycopg2
+  username: postgres
+  password: postgres
+  host: localhost
+  port: 5432
+  database: postgres
+discovery:
+  updating_workers: 4
+  discovery_workers: 4
+  days: 1
+  clear_days: null
+  criteria:
+    damerau_levenshtein: 1
+    hamming: null
+    jaro: 0.9
+    jaro_winkler: null
+    levenshtein: null
+    tf_idf: null
+    tf_idf_ngram:
+    - 1
+    - 2
+  whois_workers: 10
+  requests_per_minute: 10
+inspection:
+  screenshot_dir: /home/kali/.typosniffer/screenshots
+  page_load_timeout: 30
+  hash_threshold: 6
+  max_workers: 4
+email: null
+```
+In this README, parameters are referenced like this:
+`config.database.username` has value `postgres`.
 
-### Email
-It is possible to configure an email-based notification system for the `typosniffer discovery` and `typosniffer inspect` commands.
-
+To learn more, see [Configuration](src/typosniffer/config/config.py).
 
 ## Commands
 
@@ -172,7 +213,7 @@ This command:
 ### `inspect`
 This command:
 1. Collects all suspicious domains present in the database.
-2. For each of them, gathers and saves locally a screenshot of the website page (if it exists).
+2. For each of them, gathers and saves locally a screenshot of the website page (if it exists) at `<config.inspection.screenshot_dir>/<domain>/<date>.png`.
 3. If the screenshot hash differs by more than `config.inspection.hash_threshold` bits, the change is recorded.
 
 - If email is configured in `config.email`, an email will be sent containing all the detected changes and a score from 0 to 1 indicating the similarity to the original site's screenshot.

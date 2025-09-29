@@ -1,18 +1,11 @@
-import os
-from sqlalchemy.engine import URL
-from sqlalchemy import create_engine
+from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
+
+from typosniffer.config.config import get_config
+
 from .tables import *
 
 
-DATABASE_URL = URL.create( 
-    drivername = 'postgresql+psycopg2',
-    username = os.environ.get('DB_USER', 'postgres'),
-    password = os.environ.get('DB_PASSWORD', 'postgres'),
-    host = os.environ.get('DB_HOST', 'localhost'),
-    port = os.environ.get('DB_PORT', '5432'),
-    database = os.environ.get('DB_NAME', 'postgres')
-)
 
 class DB:
     _engine = None
@@ -21,16 +14,22 @@ class DB:
     @classmethod
     def get_session(cls):
         if cls._engine is None:
+
+            database_cfg = get_config().database
+
+            DATABASE_URL = URL.create( 
+                drivername = database_cfg.drivername,
+                username = database_cfg.username,
+                password = database_cfg.password,
+                host = database_cfg.host,
+                port = database_cfg.port,
+                database = database_cfg.database
+            )
+
             cls._engine = create_engine(DATABASE_URL, echo=False)
             cls._session_factory = scoped_session(sessionmaker(bind=cls._engine, expire_on_commit=False))
             Base.metadata.create_all(cls._engine)
         return cls._session_factory()
-    
-    @classmethod
-    def get_new_session(cls):
-        engine = create_engine(DATABASE_URL, echo=True)
-        factory = sessionmaker(bind=engine)
-        return engine, factory
 
 
 
