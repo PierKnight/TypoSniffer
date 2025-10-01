@@ -148,7 +148,12 @@ Typosniffer relies on a backend database to store findings and other useful info
 
 Parameters can be provided using environment variables or the [configuration file](#configuration).
 
-
+### Setup Playwright
+Typosniffer uses playwright to scan website and retrieve full page screenshots, use:
+```sh
+playwright install
+```
+to install a browser
 ### Ready
 
 Now it is possible to discover and inspect suspicious domains using: 
