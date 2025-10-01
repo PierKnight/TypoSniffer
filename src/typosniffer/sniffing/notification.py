@@ -12,7 +12,7 @@ from typosniffer.utils import console, email, imgbb, logger
 
 def _check_email_config(task: str) -> bool:
 
-    if not email.is_configured:
+    if not email.is_configured():
         console.print_warning(f"Email is not configured! Skipping: '{task}' notification")
         logger.log.warning(f"Skipping '{task}' email notification: email configuration is not defined")
         return True
