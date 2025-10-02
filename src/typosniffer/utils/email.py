@@ -2,7 +2,7 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
-from typosniffer.config.config import EmailConfig, get_config
+from typosniffer.config.config import EmailSettings, get_config
 import smtplib
 from jinja2 import Environment, FileSystemLoader, Template
 
@@ -50,7 +50,7 @@ def send_email(subject: str, text: str, html_body: str,
     if cfg.email is None:
         return False
     
-    email: EmailConfig = cfg.email
+    email: EmailSettings = cfg.email
 
     # Choose STARTTLS or SSL
     if email.starttls:

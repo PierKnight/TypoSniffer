@@ -7,14 +7,14 @@ from typing import Optional
 
 import requests
 
-from typosniffer.config.config import ImageUploadConfig
+from typosniffer.config.config import ImageUploadSettings
 from typosniffer.data.dto import SuspiciousDomainDTO
 from typosniffer.service import website_record
 from typosniffer.utils.logger import log
 
 
 
-def upload_file(image_path: Path, name: str, config: ImageUploadConfig) -> requests.Response:
+def upload_file(image_path: Path, name: str, config: ImageUploadSettings) -> requests.Response:
 
     # Open the image file in binary mode
     with open(image_path, "rb") as file:
@@ -32,7 +32,7 @@ def upload_file(image_path: Path, name: str, config: ImageUploadConfig) -> reque
         return response
     
 
-def upload_screenshot(suspicious_domain: SuspiciousDomainDTO, date: datetime, config: ImageUploadConfig) -> Optional[str]:
+def upload_screenshot(suspicious_domain: SuspiciousDomainDTO, date: datetime, config: ImageUploadSettings) -> Optional[str]:
     try:
 
         file = website_record.get_screenshot(suspicious_domain, date)

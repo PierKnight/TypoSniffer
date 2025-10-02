@@ -26,8 +26,8 @@ class AppSettings(BaseSettings):
 
 	database: "DatabaseSettings" = Field(default_factory=lambda: DatabaseSettings(), description="Configuration for the database connection.")
 	discovery: "DiscoverySettings" = Field(default_factory=lambda: DiscoverySettings(), description="Configuration for the discovery step.")
-	inspection: "InspectionConfig" = Field(default_factory=lambda: InspectionConfig(), description="Configuration for the inspection step.")
-	email: Optional["EmailConfig"] = Field(default=None, description="Email configuration used to send notifications.")
+	inspection: "InspectionSettings" = Field(default_factory=lambda: InspectionSettings(), description="Configuration for the inspection step.")
+	email: Optional["EmailSettings"] = Field(default=None, description="Email configuration used to send notifications.")
 
 	#custom sources order to prioritize environment settings
 	@classmethod
@@ -67,7 +67,7 @@ class DiscoverySettings(BaseSettings):
 	requests_per_minute: int = Field(default=10, ge=1, description="Number of whois requests allowed per minute per top-level domain.")
 
 # Configuration for the inspection step
-class InspectionConfig(BaseSettings):
+class InspectionSettings(BaseSettings):
 	model_config = ConfigDict(frozen=True)
 
 	screenshot_dir: DirectoryPath = Field(expand_and_create_dir("~/.typosniffer/screenshots"), description="Directory where website screenshots are saved.")
@@ -76,7 +76,7 @@ class InspectionConfig(BaseSettings):
 	max_workers: int = Field(default=multiprocessing.cpu_count(), ge=1, description="Maximum number of workers for parallel inspection tasks.")
 
 # Email configuration for sending notifications
-class EmailConfig(BaseSettings):
+class EmailSettings(BaseSettings):
 	model_config = ConfigDict(frozen=True)
 
 	smtp_server: str = Field(..., description="SMTP server hostname or IP address.")
@@ -87,15 +87,15 @@ class EmailConfig(BaseSettings):
 	receiver_email: EmailStr = Field(..., description="Email address of the recipient.")
 	starttls: bool = Field(True, description="Whether to use STARTTLS for secure SMTP connection.")
 
-	imgbb: Optional["ImageUploadConfig"] = Field(None, description="Optional ImgBB configuration, it is used to upload temporary page screenshots to be previewed in the email")
-	imgur: Optional["ImageUploadConfig"] = Field(None, description="Optional Imgur configuration, it is used to upload page screenshots to be previewed in the email, expiration parameter is ignored")
+	imgbb: Optional["ImageUploadSettings"] = Field(None, description="Optional ImgBB configuration, it is used to upload temporary page screenshots to be previewed in the email")
+	imgur: Optional["ImageUploadSettings"] = Field(None, description="Optional Imgur configuration, it is used to upload page screenshots to be previewed in the email, expiration parameter is ignored")
 	
 
 	discovery_template: FilePath = Field(default_factory=lambda: get_resource('template/discovery.html.j2'), description="Path to the Jinja2 template used for discovery emails.")
 	inspection_template: FilePath = Field(default_factory=lambda: get_resource('template/inspection.html.j2'), description="Path to the Jinja2 template used for inspection emails.")
 
 
-class ImageUploadConfig(BaseSettings):
+class ImageUploadSettings(BaseSettings):
 	model_config = ConfigDict(frozen=True)
 
 	DAY_IN_SECONDS: ClassVar[int] = 86400
