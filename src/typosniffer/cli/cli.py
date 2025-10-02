@@ -6,14 +6,12 @@ from rich.table import Table
 from pydantic import ValidationError
 from typosniffer.utils import console
 from typosniffer.config import config
-from typeguard import typechecked
 from typosniffer.cli.config import config as config_cli
 from typosniffer.cli.domain import domain
 from typosniffer.cli.monitor import discovery, inspect, monitor
 from typosniffer.cli.tools import tools
 from typosniffer.cli.sus_domain import sus_domain
 from typosniffer.cli.record import record
-
 
 def print_banner():
     banner = \
@@ -41,7 +39,6 @@ By Pierluigi Altimari
 @click.group(invoke_without_command=True, cls=LoggingGroup)
 @click.option("-v", "--verbose", is_flag=True)
 @click.pass_context
-@typechecked
 def cli(ctx : click.core.Context, verbose: bool):
 
     if verbose:

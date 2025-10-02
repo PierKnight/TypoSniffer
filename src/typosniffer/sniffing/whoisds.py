@@ -179,8 +179,8 @@ def sniff_whoisds(domains: list[DomainDTO], whoisds_files: list[WhoIsDsFile], cr
     if len(results) > 0:
         table = Table(title="Suspicious Domains")
         table.add_column("Domain", style="bold red")
-        domains = [r.domain for r in results]
-        for domain in domains:
+        sniff_domains = [r.domain for r in results]
+        for domain in sniff_domains:
             table.add_row(domain)
         console.print(table)
     else:

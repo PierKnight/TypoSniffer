@@ -1,9 +1,7 @@
 from dnstwist import Fuzzer
-from typeguard import typechecked
 from typosniffer.data.dto import DomainDTO
 from typosniffer.utils import utility
 
-@typechecked
 def fuzz(domain: DomainDTO, tld_dictionary: list[str], word_dictionary: list[str], unicode: bool = False):
 
     tld_dict = tld_dictionary if tld_dictionary else read_tld_dictionary()
@@ -16,8 +14,6 @@ def fuzz(domain: DomainDTO, tld_dictionary: list[str], word_dictionary: list[str
             variant.domain = variant.domain.encode("ascii").decode("idna")
         yield variant
 
-
-@typechecked
 def read_tld_dictionary() -> list[str]:
     return utility.read_lines(utility.get_resource("tld.txt"))
 

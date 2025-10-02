@@ -150,19 +150,19 @@ def search_dns(
                 future_to_domain[future] = domain_name 
                 
             for future in as_completed(future_to_domain):
-                domain = future_to_domain[future]
+                domain_name = future_to_domain[future]
                 try:
                     # Get the resolved IPs from the future
                     ips = future.result()
                     if ips:
-                        results[domain] = ips 
+                        results[domain_name] = ips 
                 except resolver.NXDOMAIN:
                     pass
                 except exception.Timeout as e:
-                    console.print_error(f"[bold red]Timeout with dns query: {domain}, {e}[/bold red]")
+                    console.print_error(f"[bold red]Timeout with dns query: {domain_name}, {e}[/bold red]")
                 except exception.DNSException as e:
-                    console.print_error(f"[bold red]Something went wrong with dns query: {domain}, {e}[/bold red]")
-                    log.error(f"Dns Query Exception: {domain}", exc_info=True)
+                    console.print_error(f"[bold red]Something went wrong with dns query: {domain_name}, {e}[/bold red]")
+                    log.error(f"Dns Query Exception: {domain_name}", exc_info=True)
                 finally:
                     progress.update(task, advance=1)
                 
@@ -191,7 +191,7 @@ def _scan_domains(
     try:
 
         # Set to store SniffResult objects for suspicious matches found in this chunk
-        results = set()
+        results: set[SniffResult] = set()
 
         # Calculate how often to report progress; currently using 5% of chunk length
         total_progress = max(len(chunk) * 0.05, 1)
@@ -213,6 +213,7 @@ def _scan_domains(
 
         queue.put(('done', task_id, results))
     except Exception as e:
+        console.console.print_exception()
         queue.put(('exception', task_id, e))
 
 
@@ -258,7 +259,7 @@ def sniff_file(file: Path, domains: list[DomainDTO], criteria: SniffCriteria, ma
         for i, chunk in enumerate(chunks):
             p = Process(
                 target=_scan_domains, 
-                args=(i, chunk, domains, criteria, queue)
+                args=(i, chunk.tolist(), domains, criteria, queue)
             )
             p.start()
             processes.append(p)  

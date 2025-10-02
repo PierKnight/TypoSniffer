@@ -28,7 +28,7 @@ def info(domain: str, **kwargs):
 
     #if no entity type is selected use all of them by default
     if len(selected_types) == 0:
-        selected_types = [t.value for t in EntityType]
+        selected_types = [t for t in EntityType]
     
 
     suspicious_domain = suspicious_domain_service.get_suspicious_domain(domain, selected_types)
@@ -72,11 +72,11 @@ def domain_list(domain: str):
 
 @sus_domain.command()
 @click.argument('domains', nargs=-1)
-def remove(domains: list[str]):
+def remove(domains: tuple[str,...]):
     """Remove suspicious domains"""
 
     with console.status("[bold green]Removing domains[/bold green]"):
-        removed = suspicious_domain_service.remove_suspicious_domain(domains)
+        removed = suspicious_domain_service.remove_suspicious_domain(list(domains))
         console.print_info(f"Removed {removed} suspicious domains")
 
 @sus_domain.command()
