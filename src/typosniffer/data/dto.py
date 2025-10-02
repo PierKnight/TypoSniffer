@@ -30,6 +30,7 @@ class EntityType(enum.Enum):
     TECHNICAL = "TECHNICAL"
     ABUSE = "ABUSE"
     BILLING = "BILLING"
+    SPONSOR = "SPONSOR"
 
 
 
