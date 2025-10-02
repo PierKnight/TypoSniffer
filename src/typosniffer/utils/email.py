@@ -2,7 +2,7 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
-from typosniffer.config.config import get_config
+from typosniffer.config.config import EmailConfig, get_config
 import smtplib
 from jinja2 import Environment, FileSystemLoader, Template
 
@@ -47,21 +47,23 @@ def send_email(subject: str, text: str, html_body: str,
     """
     cfg = get_config()
 
-    if not is_configured:
+    if cfg.email is None:
         return False
+    
+    email: EmailConfig = cfg.email
 
     # Choose STARTTLS or SSL
-    if cfg.email.starttls:
-        server = smtplib.SMTP(cfg.email.smtp_server, cfg.email.smtp_port)
+    if email.starttls:
+        server = smtplib.SMTP(email.smtp_server, email.smtp_port)
         server.starttls()
     else:
-        server = smtplib.SMTP_SSL(cfg.email.smtp_server, cfg.email.smtp_port)
+        server = smtplib.SMTP_SSL(email.smtp_server, email.smtp_port)
 
-    server.login(cfg.email.smtp_username, cfg.email.smtp_password)
+    server.login(email.smtp_username, email.smtp_password)
 
     msg = EmailMessage()
-    msg["From"] = cfg.email.sender_email
-    msg["To"] = cfg.email.receiver_email
+    msg["From"] = email.sender_email
+    msg["To"] = email.receiver_email
     msg["Subject"] = subject
 
     # Body
