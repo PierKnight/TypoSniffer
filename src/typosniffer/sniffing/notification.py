@@ -45,7 +45,7 @@ def notify_inspection_suspicious_domains(inspection_date: datetime, suspicious_d
     upload_screenshots = upload_config is not None
 
     if not upload_screenshots:
-        console.print_warning("images will not be added to the results")
+        console.print_warning("imgbb not configured: screenshots will not be added to the results")
         logger.log.warning("Image upload service not configured")
     else:
         columns.insert(3, "Screenshot URL")
