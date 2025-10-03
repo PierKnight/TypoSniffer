@@ -230,8 +230,9 @@ async def screenshot_page(browser : PlayBrowser, domain: str) -> Optional[Screen
 		try:
 			await page.goto(url, timeout=timeout_ms, wait_until='networkidle')
 		except PageTimeoutError:
-			console.print_error(f'Failed to screenshot {domain} page: try wait_until=load')
-			await page.goto(url, timeout=timeout_ms, wait_until='load')
+			console.print_error(f'Failed to screenshot {domain} page: try with wait')
+			await page.goto(url, timeout=timeout_ms)
+			await page.wait_for_timeout(2000)
 		screenshot_bytes = await page.screenshot(full_page=True)
 		
 		image = await asyncio.to_thread(lambda: Image.open(io.BytesIO(screenshot_bytes)))
