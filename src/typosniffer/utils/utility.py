@@ -9,7 +9,6 @@ from typing import Any, Callable, List, Generator
 import click
 from pydantic import BaseModel
 from typosniffer.utils import console
-import tldextract
 
 from typosniffer.utils.exceptions import InternetMissing
 
@@ -34,10 +33,10 @@ def list_file_option(ctx, param, value: str | Path) -> List[str]:
     
     return read_lines(Path(value))
 
-
 def strip_tld(domain: str) -> tuple[str, str]:
-    extracted = tldextract.extract(domain)
-    return extracted.suffix, f"{extracted.subdomain}.{extracted.domain}" if extracted.subdomain else extracted.domain
+
+    extracted = domain.split('.')
+    return extracted[-1], "".join(extracted[:-1])
 
 
 def to_serializable(obj: Any) -> Any:

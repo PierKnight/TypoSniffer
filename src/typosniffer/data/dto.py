@@ -50,6 +50,8 @@ class SniffCriteria(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
+    normalize_domain: bool = True
+
     damerau_levenshtein: Optional[int] = Field(1, ge=1)
     hamming: Optional[int] = Field(None, ge=1)
     jaro: Optional[float] = Field(0.9, ge=0, le=1)
